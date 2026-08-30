@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { PageHeader, Field, DataTable, Modal, Money } from '../components/Ui.jsx'
-import { createSeed } from '../data/seed.js'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
 import { applyUpdate, fetchServerSettings, fetchUpdate } from '../utils/api.js'
@@ -15,7 +14,7 @@ const THEMES = [
 ]
 
 export function SettingsPage({ toast }) {
-  const { db, updateCompany, saveWarehouse, resetDemo } = useStore()
+  const { db, updateCompany, saveWarehouse } = useStore()
   const { t, theme, setTheme, font, setFont, textSize, setTextSize } = useUi()
   const [company, setCompany] = useState(db.company)
   const [wh, setWh] = useState(null)
@@ -174,17 +173,6 @@ export function SettingsPage({ toast }) {
             }
           }}>{busy ? t('upd.working') : t('upd.button')}</button>
         </div>
-      </div>
-      <div className="card card-pad" style={{ marginTop: 14 }}>
-        <h3>{t('set.demo')}</h3>
-        <p className="muted">{t('set.demoHint')}</p>
-        <button className="btn danger" type="button" style={{ marginTop: 10 }} onClick={() => {
-          if (confirm(t('set.resetAsk'))) {
-            resetDemo()
-            setCompany(createSeed().company)
-            toast(t('set.resetOk'))
-          }
-        }}>{t('set.reset')}</button>
       </div>
       {wh ? (
         <Modal

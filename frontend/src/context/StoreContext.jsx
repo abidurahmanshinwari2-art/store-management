@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { createEmptyStore, createSeed, looksLikeSample } from '../data/seed.js'
+import { createEmptyStore, looksLikeSample } from '../data/seed.js'
 import { docTotals, lineTotals } from '../lib/calc.js'
 import { fetchStore, pushStore } from '../utils/api.js'
 import { round2, todayIso } from '../utils/format.js'
 import { nextNumber, uid } from '../utils/id.js'
-import { clearStore, loadStore, saveStore } from '../utils/storage.js'
+import { loadStore, saveStore } from '../utils/storage.js'
 
 const StoreContext = createContext(null)
 
@@ -535,13 +535,6 @@ export function StoreProvider({ children }) {
 
   const deleteHold = (id) => removeFromList('holds', id)
 
-  const resetDemo = () => {
-    clearStore()
-    const next = createSeed()
-    setDb(next)
-    pushStore(next).catch(() => {})
-  }
-
   const value = useMemo(
     () => ({
       ready,
@@ -585,7 +578,6 @@ export function StoreProvider({ children }) {
       recordPayment,
       holdSale,
       deleteHold,
-      resetDemo,
     }),
     [db, ready],
   )
