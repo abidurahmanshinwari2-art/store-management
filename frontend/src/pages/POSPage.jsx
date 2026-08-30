@@ -1,16 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { BarcodeCamera } from '../components/BarcodeCamera.jsx'
+import { Field, Modal, Money } from '../components/Ui.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
-import { Field, Modal, Money } from '../components/Ui.jsx'
 import { docTotals } from '../lib/calc.js'
+import { findProductByCode, looksLikeScanBurst } from '../utils/barcode.js'
 import { qtyFmt, round2 } from '../utils/format.js'
 
 export function POSPage({ toast }) {
   const { db, taxRate, getStock, createSale, holdSale, deleteHold } = useStore()
   const { user } = useAuth()
   const { t, tRich } = useUi()
+  const scanRef = useRef(null)
   const [q, setQ] = useState('')
+  const [camera, setCamera] = useState(false)
   const [warehouseId, setWarehouseId] = useState(db.warehouses[0]?.id)
   const [customerId, setCustomerId] = useState('walkin')
   const [cart, setCart] = useState([])
@@ -24,32 +28,79 @@ export function POSPage({ toast }) {
     const s = q.trim().toLowerCase()
     return db.products.filter((p) => {
       if (!s) return true
-      return [p.name, p.sku, p.barcode].some((v) => v.toLowerCase().includes(s))
+      return [p.name, p.sku, p.barcode].some((v) => String(v || '').toLowerCase().includes(s))
     })
   }, [db.products, q])
 
   const add = (product) => {
-    const stock = getStock(product.id, warehouseId)
-    const existing = cart.find((l) => l.productId === product.id)
-    const qty = (existing?.qty || 0) + 1
-    if (qty > stock) {
-      toast(t('pos.onlyNamed', { n: stock, name: product.name }), 'bad')
-      return
-    }
-    if (existing) {
-      setCart(cart.map((l) => (l.productId === product.id ? { ...l, qty } : l)))
-    } else {
-      setCart([...cart, {
+    if (!product) return
+    setCart((prev) => {
+      const stock = getStock(product.id, warehouseId)
+      const existing = prev.find((l) => l.productId === product.id)
+      const qty = (existing?.qty || 0) + 1
+      if (qty > stock) {
+        toast(t('pos.onlyNamed', { n: stock, name: product.name }), 'bad')
+        return prev
+      }
+      if (existing) {
+        return prev.map((l) => (l.productId === product.id ? { ...l, qty } : l))
+      }
+      return [...prev, {
         productId: product.id,
         name: product.name,
         qty: 1,
         price: product.sellPrice,
         discount: 0,
         taxable: product.taxable,
-      }])
-    }
+      }]
+    })
     setQ('')
+    window.setTimeout(() => scanRef.current?.focus(), 0)
   }
+
+  const addByCode = (raw) => {
+    const code = String(raw || '').trim()
+    if (!code) return false
+    const product = findProductByCode(db.products, code)
+    if (!product) {
+      toast(t('pos.barcodeMiss', { n: code }), 'bad')
+      return false
+    }
+    add(product)
+    return true
+  }
+
+  const addRef = useRef(addByCode)
+  addRef.current = addByCode
+
+  useEffect(() => {
+    let buffer = ''
+    let started = 0
+    const onKey = (e) => {
+      if (e.key === 'Enter') {
+        const elapsed = Date.now() - started
+        if (looksLikeScanBurst(buffer, elapsed)) {
+          e.preventDefault()
+          e.stopPropagation()
+          addRef.current(buffer)
+        }
+        buffer = ''
+        started = 0
+        return
+      }
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (!buffer) started = Date.now()
+        buffer += e.key
+        return
+      }
+      if (e.key !== 'Shift') {
+        buffer = ''
+        started = 0
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [])
 
   const setQty = (productId, qty) => {
     const n = Math.max(0, Number(qty) || 0)
@@ -58,8 +109,8 @@ export function POSPage({ toast }) {
       toast(t('pos.onlyStock', { n: stock }), 'bad')
       return
     }
-    if (n === 0) setCart(cart.filter((l) => l.productId !== productId))
-    else setCart(cart.map((l) => (l.productId === productId ? { ...l, qty: n } : l)))
+    if (n === 0) setCart((prev) => prev.filter((l) => l.productId !== productId))
+    else setCart((prev) => prev.map((l) => (l.productId === productId ? { ...l, qty: n } : l)))
   }
 
   const totals = docTotals(cart, taxRate)
@@ -89,6 +140,7 @@ export function POSPage({ toast }) {
       setHoldId(null)
       setMethod('cash')
       toast(t('pos.saved', { n: sale.number }))
+      window.setTimeout(() => scanRef.current?.focus(), 0)
     } catch (err) {
       toast(err.message, 'bad')
     }
@@ -100,25 +152,38 @@ export function POSPage({ toast }) {
         <section className="pos-left">
           <div className="toolbar" style={{ padding: 12, margin: 0 }}>
             <input
+              ref={scanRef}
               className="search"
               placeholder={t('pos.search')}
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && filtered[0]) add(filtered[0])
+                if (e.key !== 'Enter') return
+                const code = q.trim()
+                if (!code) return
+                const exact = findProductByCode(db.products, code)
+                if (exact) {
+                  e.preventDefault()
+                  add(exact)
+                  return
+                }
+                if (filtered.length === 1) add(filtered[0])
               }}
               autoFocus
             />
+            <button className="btn ghost" type="button" onClick={() => setCamera(true)}>{t('pos.camera')}</button>
             <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}>
               {db.warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           </div>
+          <p className="muted" style={{ padding: '0 12px 8px' }}>{t('pos.scanHint')}</p>
           <div className="product-grid">
             {filtered.map((p) => (
               <button key={p.id} className="product-tile" type="button" onClick={() => add(p)}>
                 <b>{p.name}</b>
                 <div><Money value={p.sellPrice} /></div>
                 <div className="muted">{qtyFmt(getStock(p.id, warehouseId))} {p.unit}</div>
+                {p.barcode ? <div className="muted">{p.barcode}</div> : null}
               </button>
             ))}
           </div>
@@ -222,6 +287,15 @@ export function POSPage({ toast }) {
           </div>
         </aside>
       </div>
+      {camera ? (
+        <BarcodeCamera
+          onCode={(code) => {
+            setCamera(false)
+            addByCode(code)
+          }}
+          onClose={() => setCamera(false)}
+        />
+      ) : null}
       {receipt ? (
         <Modal
           title={t('pos.receipt', { n: receipt.number })}

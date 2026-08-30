@@ -41,7 +41,7 @@ export function saveAuth(user) {
 }
 
 export function loadUi() {
-  const base = { collapsed: false, lang: 'en', theme: 'pine', rates: { ...DEFAULT_RATES } }
+  const base = { collapsed: false, lang: 'en', theme: 'pine', font: 'shop', textSize: 'normal', rates: { ...DEFAULT_RATES } }
   try {
     const raw = localStorage.getItem(UI_KEY)
     if (!raw) return base

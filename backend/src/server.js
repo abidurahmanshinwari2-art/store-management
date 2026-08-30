@@ -75,9 +75,16 @@ app.post('/api/update/apply', async (req, res) => {
 })
 
 if (fs.existsSync(FRONTEND_DIST)) {
+  app.use((req, res, next) => {
+    if (req.path === '/' || req.path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store')
+    }
+    next()
+  })
   app.use(express.static(FRONTEND_DIST))
   app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith('/api')) return next()
+    res.setHeader('Cache-Control', 'no-store')
     res.sendFile(path.join(FRONTEND_DIST, 'index.html'))
   })
 }

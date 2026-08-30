@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { BarcodeCamera } from '../components/BarcodeCamera.jsx'
 import { PageHeader, DataTable, Badge, Modal, Field, Money } from '../components/Ui.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
@@ -21,6 +22,7 @@ export function ProductsPage({ toast }) {
   const { t } = useUi()
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null)
+  const [scanForm, setScanForm] = useState(false)
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -53,6 +55,7 @@ export function ProductsPage({ toast }) {
           columns={[
             { key: 'name', label: t('common.product') },
             { key: 'sku', label: t('products.sku') },
+            { key: 'barcode', label: t('products.barcode'), render: (p) => p.barcode || '—' },
             { key: 'category', label: t('products.group'), render: (p) => db.categories.find((c) => c.id === p.categoryId)?.name || '—' },
             { key: 'sellPrice', label: t('products.sell'), render: (p) => <Money value={p.sellPrice} /> },
             { key: 'costPrice', label: t('products.cost'), render: (p) => <Money value={p.costPrice} /> },
@@ -83,7 +86,16 @@ export function ProductsPage({ toast }) {
           <div className="form-grid">
             <Field label={t('common.name')} full><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
             <Field label={t('products.sku')}><input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></Field>
-            <Field label={t('products.barcode')}><input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} /></Field>
+            <Field label={t('products.barcode')} full>
+              <div className="scan-row">
+                <input
+                  value={form.barcode}
+                  onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                  placeholder={t('products.barcodeHint')}
+                />
+                <button className="btn ghost" type="button" onClick={() => setScanForm(true)}>{t('pos.camera')}</button>
+              </div>
+            </Field>
             <Field label={t('products.group')}>
               <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
                 {db.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -99,6 +111,15 @@ export function ProductsPage({ toast }) {
             </label>
           </div>
         </Modal>
+      ) : null}
+      {form && scanForm ? (
+        <BarcodeCamera
+          onCode={(code) => {
+            setForm((prev) => (prev ? { ...prev, barcode: code } : prev))
+            setScanForm(false)
+          }}
+          onClose={() => setScanForm(false)}
+        />
       ) : null}
     </div>
   )

@@ -4,6 +4,7 @@ import { createSeed } from '../data/seed.js'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
 import { applyUpdate, fetchServerSettings, fetchUpdate } from '../utils/api.js'
+import { FONTS, TEXT_SIZES } from '../utils/fonts.js'
 
 const THEMES = [
   { id: 'pine', colors: ['#12352c', '#c9a227', '#f3f0e6'] },
@@ -15,7 +16,7 @@ const THEMES = [
 
 export function SettingsPage({ toast }) {
   const { db, updateCompany, saveWarehouse, resetDemo } = useStore()
-  const { t, theme, setTheme } = useUi()
+  const { t, theme, setTheme, font, setFont, textSize, setTextSize } = useUi()
   const [company, setCompany] = useState(db.company)
   const [wh, setWh] = useState(null)
   const [sys, setSys] = useState({ version: '', dataPath: '', githubRepo: '' })
@@ -67,6 +68,37 @@ export function SettingsPage({ toast }) {
               </div>
               <b>{t(`theme.${item.id}`)}</b>
               <span>{t(`theme.${item.id}Hint`)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="card card-pad" style={{ marginBottom: 14 }}>
+        <h3>{t('set.font')}</h3>
+        <p className="muted" style={{ margin: '6px 0 14px' }}>{t('set.fontHint')}</p>
+        <div className="theme-grid">
+          {FONTS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`theme-card font-card font-${item.id}${font === item.id ? ' active' : ''}`}
+              onClick={() => setFont(item.id)}
+            >
+              <b>{t(`font.${item.id}`)}</b>
+              <span>{t(`font.${item.id}Hint`)}</span>
+              <p className="font-sample">{t('font.sample')}</p>
+            </button>
+          ))}
+        </div>
+        <div className="size-row" style={{ marginTop: 14 }}>
+          {TEXT_SIZES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`btn ${textSize === item.id ? 'copper' : 'ghost'}`}
+              onClick={() => setTextSize(item.id)}
+            >
+              {t(`size.${item.id}`)}
             </button>
           ))}
         </div>

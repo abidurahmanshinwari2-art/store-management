@@ -4,10 +4,12 @@ import { loadUi, saveUi } from '../utils/storage.js'
 
 const UiContext = createContext(null)
 
-function applyDoc(lang, theme) {
+function applyDoc(lang, theme, font, textSize) {
   document.documentElement.lang = lang === 'dr' ? 'fa' : lang
   document.documentElement.dir = 'ltr'
   document.documentElement.dataset.theme = theme
+  document.documentElement.dataset.font = font || 'shop'
+  document.documentElement.dataset.size = textSize || 'normal'
 }
 
 export function UiProvider({ children }) {
@@ -15,18 +17,20 @@ export function UiProvider({ children }) {
   const [collapsed, setCollapsedState] = useState(() => Boolean(saved.collapsed))
   const [lang, setLangState] = useState(() => {
     const next = saved.lang || 'en'
-    applyDoc(next, saved.theme || 'pine')
+    applyDoc(next, saved.theme || 'pine', saved.font || 'shop', saved.textSize || 'normal')
     return next
   })
   const [theme, setThemeState] = useState(() => saved.theme || 'pine')
+  const [font, setFontState] = useState(() => saved.font || 'shop')
+  const [textSize, setTextSizeState] = useState(() => saved.textSize || 'normal')
   const [rates, setRatesState] = useState(() => ({ ...DEFAULT_RATES, ...(saved.rates || {}) }))
 
   useEffect(() => {
-    applyDoc(lang, theme)
-  }, [lang, theme])
+    applyDoc(lang, theme, font, textSize)
+  }, [lang, theme, font, textSize])
 
   const persist = (patch) => {
-    const next = { collapsed, lang, theme, rates, ...patch }
+    const next = { collapsed, lang, theme, font, textSize, rates, ...patch }
     saveUi(next)
   }
 
@@ -48,6 +52,16 @@ export function UiProvider({ children }) {
     persist({ theme: id })
   }
 
+  const setFont = (id) => {
+    setFontState(id)
+    persist({ font: id })
+  }
+
+  const setTextSize = (id) => {
+    setTextSizeState(id)
+    persist({ textSize: id })
+  }
+
   const setRates = (next) => {
     setRatesState(next)
     persist({ rates: next })
@@ -59,8 +73,23 @@ export function UiProvider({ children }) {
   ))
 
   const value = useMemo(
-    () => ({ collapsed, setCollapsed, lang, setLang, theme, setTheme, rates, setRates, t, tRich }),
-    [collapsed, lang, theme, rates],
+    () => ({
+      collapsed,
+      setCollapsed,
+      lang,
+      setLang,
+      theme,
+      setTheme,
+      font,
+      setFont,
+      textSize,
+      setTextSize,
+      rates,
+      setRates,
+      t,
+      tRich,
+    }),
+    [collapsed, lang, theme, font, textSize, rates],
   )
 
   return <UiContext.Provider value={value}>{children}</UiContext.Provider>
