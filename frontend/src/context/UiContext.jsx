@@ -1,15 +1,17 @@
 import { createContext, Fragment, useContext, useEffect, useMemo, useState } from 'react'
 import { DEFAULT_RATES, translate, translateRich } from '../i18n/translations.js'
+import { clampTextSize, FONT_SIZE_DEFAULT } from '../utils/fonts.js'
 import { loadUi, saveUi } from '../utils/storage.js'
 
 const UiContext = createContext(null)
 
 function applyDoc(lang, theme, font, textSize) {
+  const px = clampTextSize(textSize)
   document.documentElement.lang = lang === 'dr' ? 'fa' : lang
   document.documentElement.dir = 'ltr'
   document.documentElement.dataset.theme = theme
   document.documentElement.dataset.font = font || 'shop'
-  document.documentElement.dataset.size = textSize || 'normal'
+  document.documentElement.style.setProperty('--text-size', `${px}px`)
 }
 
 export function UiProvider({ children }) {
@@ -17,12 +19,12 @@ export function UiProvider({ children }) {
   const [collapsed, setCollapsedState] = useState(() => Boolean(saved.collapsed))
   const [lang, setLangState] = useState(() => {
     const next = saved.lang || 'en'
-    applyDoc(next, saved.theme || 'pine', saved.font || 'shop', saved.textSize || 'normal')
+    applyDoc(next, saved.theme || 'pine', saved.font || 'shop', saved.textSize)
     return next
   })
   const [theme, setThemeState] = useState(() => saved.theme || 'pine')
   const [font, setFontState] = useState(() => saved.font || 'shop')
-  const [textSize, setTextSizeState] = useState(() => saved.textSize || 'normal')
+  const [textSize, setTextSizeState] = useState(() => clampTextSize(saved.textSize ?? FONT_SIZE_DEFAULT))
   const [rates, setRatesState] = useState(() => ({ ...DEFAULT_RATES, ...(saved.rates || {}) }))
 
   useEffect(() => {
@@ -57,9 +59,10 @@ export function UiProvider({ children }) {
     persist({ font: id })
   }
 
-  const setTextSize = (id) => {
-    setTextSizeState(id)
-    persist({ textSize: id })
+  const setTextSize = (value) => {
+    const next = clampTextSize(value)
+    setTextSizeState(next)
+    persist({ textSize: next })
   }
 
   const setRates = (next) => {

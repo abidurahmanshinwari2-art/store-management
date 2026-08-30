@@ -3,7 +3,7 @@ import { PageHeader, Field, DataTable, Modal, Money } from '../components/Ui.jsx
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
 import { applyUpdate, fetchServerSettings, fetchUpdate } from '../utils/api.js'
-import { FONTS, TEXT_SIZES } from '../utils/fonts.js'
+import { FONTS, FONT_SIZE_MAX, FONT_SIZE_MIN } from '../utils/fonts.js'
 
 const THEMES = [
   { id: 'pine', colors: ['#12352c', '#c9a227', '#f3f0e6'] },
@@ -80,26 +80,41 @@ export function SettingsPage({ toast }) {
             <button
               key={item.id}
               type="button"
-              className={`theme-card font-card font-${item.id}${font === item.id ? ' active' : ''}`}
+              className={`theme-card${font === item.id ? ' active' : ''}`}
               onClick={() => setFont(item.id)}
             >
               <b>{t(`font.${item.id}`)}</b>
               <span>{t(`font.${item.id}Hint`)}</span>
-              <p className="font-sample">{t('font.sample')}</p>
             </button>
           ))}
         </div>
         <div className="size-row" style={{ marginTop: 14 }}>
-          {TEXT_SIZES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`btn ${textSize === item.id ? 'copper' : 'ghost'}`}
-              onClick={() => setTextSize(item.id)}
-            >
-              {t(`size.${item.id}`)}
-            </button>
-          ))}
+          <button
+            className="btn ghost"
+            type="button"
+            disabled={textSize <= FONT_SIZE_MIN}
+            onClick={() => setTextSize(textSize - 1)}
+          >
+            −
+          </button>
+          <input
+            type="range"
+            min={FONT_SIZE_MIN}
+            max={FONT_SIZE_MAX}
+            step="1"
+            value={textSize}
+            onChange={(e) => setTextSize(e.target.value)}
+            aria-label={t('set.fontSize')}
+          />
+          <button
+            className="btn ghost"
+            type="button"
+            disabled={textSize >= FONT_SIZE_MAX}
+            onClick={() => setTextSize(textSize + 1)}
+          >
+            +
+          </button>
+          <span className="size-value">{t('set.fontPx', { n: textSize })}</span>
         </div>
       </div>
 
