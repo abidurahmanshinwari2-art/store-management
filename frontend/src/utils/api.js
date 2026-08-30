@@ -7,7 +7,7 @@ async function request(path, options = {}) {
     let message = 'Server error'
     try {
       const body = await res.json()
-      message = body.error || message
+      message = body.message || body.error || message
     } catch {
       // keep default
     }

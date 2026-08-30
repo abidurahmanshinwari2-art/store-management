@@ -3,7 +3,7 @@ import { PageHeader, Field, DataTable, Modal, Money } from '../components/Ui.jsx
 import { createSeed } from '../data/seed.js'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
-import { applyUpdate, fetchServerSettings, fetchUpdate, pushServerSettings } from '../utils/api.js'
+import { applyUpdate, fetchServerSettings, fetchUpdate } from '../utils/api.js'
 
 const THEMES = [
   { id: 'pine', colors: ['#12352c', '#c9a227', '#f3f0e6'] },
@@ -20,10 +20,14 @@ export function SettingsPage({ toast }) {
   const [wh, setWh] = useState(null)
   const [sys, setSys] = useState({ version: '', dataPath: '', githubRepo: '' })
   const [upd, setUpd] = useState(null)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     fetchServerSettings()
       .then(setSys)
+      .catch(() => {})
+    fetchUpdate()
+      .then(setUpd)
       .catch(() => {})
   }, [])
 
@@ -112,41 +116,31 @@ export function SettingsPage({ toast }) {
         <h3>{t('set.system')}</h3>
         <p className="muted">{t('set.systemHint')}</p>
         <div className="form-grid" style={{ marginTop: 12 }}>
-          <Field label={t('set.version')}><input value={sys.version || ''} readOnly /></Field>
+          <Field label={t('set.version')}><input value={upd?.latest ? `${sys.version || ''} / ${upd.latest}` : (sys.version || '')} readOnly /></Field>
           <Field label={t('set.dataPlace')} full><input value={sys.dataPath || ''} readOnly /></Field>
-          <Field label={t('set.github')} full>
-            <input
-              value={sys.githubRepo || ''}
-              placeholder="your-name/your-repo"
-              onChange={(e) => setSys({ ...sys, githubRepo: e.target.value })}
-            />
-          </Field>
         </div>
+        <p className="muted" style={{ marginTop: 10 }}>
+          {busy ? t('upd.working') : upd?.available ? t('upd.available', { n: upd.latest }) : t('upd.hint')}
+        </p>
         <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
-          <button className="btn ghost" type="button" onClick={async () => {
-            try {
-              const saved = await pushServerSettings({ githubRepo: sys.githubRepo })
-              setSys(saved)
-              toast(t('set.saved'))
-            } catch (err) { toast(err.message, 'bad') }
-          }}>{t('set.saveGithub')}</button>
-          <button className="btn copper" type="button" onClick={async () => {
+          <button className="btn copper" type="button" disabled={busy} onClick={async () => {
+            setBusy(true)
             try {
               const row = await fetchUpdate()
               setUpd(row)
-              toast(row.available ? t('upd.available', { n: row.latest }) : t('upd.none'))
-            } catch { toast(t('upd.offline'), 'bad') }
-          }}>{t('upd.check')}</button>
-          {upd?.available && upd.url ? (
-            <a className="btn ghost" href={upd.url} target="_blank" rel="noreferrer">{t('upd.get')}</a>
-          ) : null}
-          <button className="btn ghost" type="button" onClick={async () => {
-            try {
-              const row = await applyUpdate()
-              toast(row.ok ? row.message : (row.message || t('upd.needGit')), row.ok ? 'ok' : 'bad')
-              if (!row.ok && row.url) window.open(row.url, '_blank')
-            } catch (err) { toast(err.message, 'bad') }
-          }}>{t('upd.apply')}</button>
+              if (!row.available) {
+                toast(row.note === 'offline' ? t('upd.offline') : t('upd.none'))
+                return
+              }
+              toast(t('upd.working'))
+              const done = await applyUpdate()
+              toast(done.ok ? (done.message || t('upd.done')) : (done.message || t('upd.failed')), done.ok ? 'ok' : 'bad')
+            } catch {
+              toast(t('upd.offline'), 'bad')
+            } finally {
+              setBusy(false)
+            }
+          }}>{busy ? t('upd.working') : t('upd.button')}</button>
         </div>
       </div>
       <div className="card card-pad" style={{ marginTop: 14 }}>

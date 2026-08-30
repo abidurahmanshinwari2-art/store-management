@@ -1,10 +1,25 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { loadAuth, saveAuth } from '../utils/storage.js'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children, users }) {
   const [user, setUser] = useState(() => loadAuth())
+
+  useEffect(() => {
+    if (!user || !users?.length) return
+    const found = users.find((u) => u.id === user.id || u.email === user.email)
+    if (!found || found.active === false) {
+      setUser(null)
+      saveAuth(null)
+      return
+    }
+    if (found.name !== user.name || found.role !== user.role || found.email !== user.email) {
+      const session = { id: found.id, name: found.name, email: found.email, role: found.role }
+      setUser(session)
+      saveAuth(session)
+    }
+  }, [users, user])
 
   const login = (email, password) => {
     const found = (users || []).find(

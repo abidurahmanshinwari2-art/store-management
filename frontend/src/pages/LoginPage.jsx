@@ -6,20 +6,14 @@ import { useUi } from '../context/UiContext.jsx'
 import { Field } from '../components/Ui.jsx'
 import { TopTools } from '../components/TopTools.jsx'
 
-const DEMOS = [
-  { email: 'owner@store.com', password: 'owner123', label: 'auth.demoOwner' },
-  { email: 'manager@store.com', password: 'manager123', label: 'auth.demoManager' },
-  { email: 'cashier@store.com', password: 'cashier123', label: 'auth.demoCashier' },
-  { email: 'stock@store.com', password: 'stock123', label: 'auth.demoStock' },
-]
-
 export function LoginPage() {
   const { user, login } = useAuth()
   const { db } = useStore()
   const { t } = useUi()
   const storeName = db.company.name
-  const [email, setEmail] = useState('owner@store.com')
-  const [password, setPassword] = useState('owner123')
+  const first = db.users.find((u) => u.active !== false)
+  const [email, setEmail] = useState(first?.email || '')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
   if (user) return <Navigate to="/" replace />
@@ -50,22 +44,24 @@ export function LoginPage() {
             <h3>{t('auth.signIn')}</h3>
             <p className="muted">{t('auth.signInTo', { name: storeName })}</p>
           </div>
-          <div className="demo-list">
-            <p className="muted" style={{ marginBottom: 6 }}>{t('auth.demo')}</p>
-            {DEMOS.map((demo) => (
-              <button
-                key={demo.email}
-                type="button"
-                onClick={() => {
-                  setEmail(demo.email)
-                  setPassword(demo.password)
-                  setError('')
-                }}
-              >
-                {t(demo.label)} — {demo.email}
-              </button>
-            ))}
-          </div>
+          {db.users.filter((u) => u.active !== false).length > 1 ? (
+            <div className="demo-list">
+              <p className="muted" style={{ marginBottom: 6 }}>{t('auth.pickUser')}</p>
+              {db.users.filter((u) => u.active !== false).map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => {
+                    setEmail(row.email)
+                    setPassword('')
+                    setError('')
+                  }}
+                >
+                  {row.name} — {row.email}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <Field label={t('auth.email')}>
             <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
           </Field>

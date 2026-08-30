@@ -1,49 +1,131 @@
 import { execFile } from 'node:child_process'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { promisify } from 'node:util'
-import { APP_ROOT, appConfig, githubRepo } from './paths.js'
+import { APP_ROOT, appConfig, githubRepo, saveUserSettings, userSettings } from './paths.js'
 
 const execFileAsync = promisify(execFile)
+const SKIP = new Set(['node_modules', '.git', 'dist'])
 
-function compareVersions(a, b) {
-  const pa = String(a).replace(/^v/, '').split('.').map((n) => Number(n) || 0)
-  const pb = String(b).replace(/^v/, '').split('.').map((n) => Number(n) || 0)
-  const len = Math.max(pa.length, pb.length)
-  for (let i = 0; i < len; i += 1) {
-    if ((pa[i] || 0) > (pb[i] || 0)) return 1
-    if ((pa[i] || 0) < (pb[i] || 0)) return -1
+function ghHeaders() {
+  return { Accept: 'application/vnd.github+json', 'User-Agent': 'HasanShinwariStore' }
+}
+
+async function latestGithub() {
+  const repo = githubRepo()
+  if (!repo) return null
+  const releaseRes = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: ghHeaders() })
+  if (releaseRes.ok) {
+    const release = await releaseRes.json()
+    const tag = String(release.tag_name || '').replace(/^v/, '')
+    const zip = release.zipball_url || `https://github.com/${repo}/archive/refs/tags/${release.tag_name}.zip`
+    return {
+      kind: 'release',
+      id: tag || release.target_commitish,
+      name: tag || release.name,
+      zip,
+      url: release.html_url,
+    }
   }
-  return 0
+  const commitRes = await fetch(`https://api.github.com/repos/${repo}/commits/main`, { headers: ghHeaders() })
+  if (!commitRes.ok) return null
+  const commit = await commitRes.json()
+  const sha = commit.sha
+  return {
+    kind: 'commit',
+    id: sha,
+    name: String(sha).slice(0, 7),
+    zip: `https://github.com/${repo}/archive/${sha}.zip`,
+    url: `https://github.com/${repo}`,
+  }
+}
+
+function copyTree(from, to) {
+  fs.mkdirSync(to, { recursive: true })
+  for (const name of fs.readdirSync(from)) {
+    if (SKIP.has(name)) continue
+    const src = path.join(from, name)
+    const dest = path.join(to, name)
+    if (fs.statSync(src).isDirectory()) copyTree(src, dest)
+    else fs.copyFileSync(src, dest)
+  }
 }
 
 export async function checkUpdate() {
-  const current = appConfig().version
-  const repo = githubRepo()
-  if (!repo) {
-    return { current, latest: current, available: false, url: '', note: 'no-repo' }
+  const current = userSettings().installedId || appConfig().version
+  const remote = await latestGithub()
+  if (!remote) {
+    return {
+      current,
+      latest: current,
+      available: false,
+      url: '',
+      note: githubRepo() ? 'offline' : 'no-repo',
+    }
   }
-  const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'HasanShinwariStore' },
-  })
-  if (!res.ok) {
-    return { current, latest: current, available: false, url: `https://github.com/${repo}/releases`, note: 'offline' }
+  if (!userSettings().installedId) {
+    saveUserSettings({ installedId: remote.id })
+    return { current: remote.name, latest: remote.name, available: false, url: remote.url, note: 'ok' }
   }
-  const release = await res.json()
-  const latest = String(release.tag_name || release.name || '').replace(/^v/, '')
   return {
     current,
-    latest: latest || current,
-    available: Boolean(latest) && compareVersions(latest, current) > 0,
-    url: release.html_url || `https://github.com/${repo}/releases`,
-    name: release.name || latest,
+    latest: remote.name,
+    available: userSettings().installedId !== remote.id,
+    url: remote.url,
     note: 'ok',
   }
 }
 
-export async function applyGitUpdate() {
+export async function applyUpdate() {
+  const repo = githubRepo()
+  if (!repo) return { ok: false, message: 'No GitHub repo is set.' }
+  const remote = await latestGithub()
+  if (!remote) return { ok: false, message: 'No internet, or GitHub is closed.' }
+  if (userSettings().installedId === remote.id) {
+    return { ok: true, already: true, message: 'This PC already has the last version.' }
+  }
+
+  const work = path.join(os.tmpdir(), `store-update-${Date.now()}`)
+  const zipPath = path.join(work, 'update.zip')
+  fs.mkdirSync(work, { recursive: true })
+
+  const zipRes = await fetch(remote.zip, { headers: { 'User-Agent': 'HasanShinwariStore' } })
+  if (!zipRes.ok) return { ok: false, message: 'Could not download the update.' }
+  fs.writeFileSync(zipPath, Buffer.from(await zipRes.arrayBuffer()))
+
+  const unpacked = path.join(work, 'unpacked')
+  fs.mkdirSync(unpacked, { recursive: true })
+  await execFileAsync('tar', ['-xf', zipPath, '-C', unpacked])
+  const inner = fs.readdirSync(unpacked).map((name) => path.join(unpacked, name)).find((p) => fs.statSync(p).isDirectory())
+  if (!inner) return { ok: false, message: 'The download was empty.' }
+
+  copyTree(inner, APP_ROOT)
+  saveUserSettings({ installedId: remote.id })
+
+  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   try {
-    const { stdout } = await execFileAsync('git', ['-C', APP_ROOT, 'pull', '--ff-only'])
-    return { ok: true, message: String(stdout || 'Updated.').trim() }
+    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'backend'), 'install'], { windowsHide: true })
+    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'install'], { windowsHide: true })
+    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'run', 'build'], { windowsHide: true })
   } catch (err) {
-    return { ok: false, message: err.stderr || err.message || 'Update failed.' }
+    return {
+      ok: true,
+      restart: true,
+      message: 'Files are downloaded. Close the store and run start-store.bat again.',
+      detail: String(err.message || ''),
+    }
+  }
+
+  try {
+    fs.rmSync(work, { recursive: true, force: true })
+  } catch {
+    // temp folder can stay
+  }
+
+  return {
+    ok: true,
+    restart: true,
+    message: 'Update is installed. Close the store and run start-store.bat again. Shop data on this PC is safe.',
   }
 }

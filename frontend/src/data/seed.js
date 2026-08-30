@@ -2,6 +2,52 @@ import { daysAgoIso } from '../utils/format.js'
 
 export const STORE_NAME = 'Hasan Shinwari Genral Store'
 
+export function looksLikeSample(db) {
+  return Boolean(
+    db?.users?.some((u) => u.name === 'Amina Karimi' && u.email === 'owner@store.com')
+    && db?.customers?.some((c) => c.id === 'c1' && c.name === 'Ahmad Reza')
+    && db?.sales?.some((s) => s.number === 'INV-0001')
+    && db?.products?.some((p) => p.sku === 'RICE-5')
+    && (db.sales?.length || 0) <= 3,
+  )
+}
+
+export function createEmptyStore() {
+  return {
+    company: {
+      name: STORE_NAME,
+      tagline: '',
+      address: '',
+      phone: '',
+      email: '',
+      currencySymbol: '$',
+      currencyCode: 'USD',
+      taxName: 'Tax',
+      taxRate: 0,
+      invoicePrefix: 'INV',
+      purchasePrefix: 'PO',
+      fiscalYearStart: '01-01',
+    },
+    warehouses: [{ id: 'wh-main', name: 'Main Store', address: '' }],
+    categories: [],
+    products: [],
+    inventory: [],
+    suppliers: [],
+    customers: [
+      { id: 'walkin', name: 'Walk-in Customer', phone: '', email: '', address: '', creditLimit: 0, balance: 0, isWalkIn: true },
+    ],
+    users: [
+      { id: 'u1', name: 'Owner', email: 'owner@store.com', password: 'owner123', role: 'owner', active: true },
+    ],
+    sales: [],
+    purchases: [],
+    expenses: [],
+    payments: [],
+    movements: [],
+    holds: [],
+  }
+}
+
 export function createSeed() {
   const warehouses = [
     { id: 'wh-main', name: 'Main Store', address: 'Ground floor' },

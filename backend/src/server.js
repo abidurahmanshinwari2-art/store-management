@@ -2,7 +2,7 @@ import cors from 'cors'
 import express from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
-import { applyGitUpdate, checkUpdate } from './updater.js'
+import { applyUpdate, checkUpdate } from './updater.js'
 import {
   DATA_DIR,
   FRONTEND_DIST,
@@ -64,18 +64,14 @@ app.get('/api/update', async (_req, res) => {
   }
 })
 
-app.post('/api/update/apply', async (_req, res) => {
-  const info = await checkUpdate().catch(() => null)
-  const git = await applyGitUpdate()
-  if (git.ok) {
-    res.json({ ok: true, message: git.message, update: info })
-    return
+app.post('/api/update/apply', async (req, res) => {
+  req.setTimeout(10 * 60 * 1000)
+  res.setTimeout(10 * 60 * 1000)
+  try {
+    res.json(await applyUpdate())
+  } catch (err) {
+    res.status(500).json({ ok: false, message: err.message || 'Update failed.' })
   }
-  res.json({
-    ok: false,
-    message: git.message,
-    url: info?.url || '',
-  })
 })
 
 if (fs.existsSync(FRONTEND_DIST)) {

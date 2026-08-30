@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { createSeed } from '../data/seed.js'
+import { createEmptyStore, createSeed, looksLikeSample } from '../data/seed.js'
 import { docTotals, lineTotals } from '../lib/calc.js'
 import { fetchStore, pushStore } from '../utils/api.js'
 import { round2, todayIso } from '../utils/format.js'
@@ -36,7 +36,11 @@ function adjustStock(db, { productId, warehouseId, qty, type, ref, date }) {
 }
 
 export function StoreProvider({ children }) {
-  const [db, setDb] = useState(() => loadStore() || createSeed())
+  const [db, setDb] = useState(() => {
+    const local = loadStore()
+    if (local && !looksLikeSample(local)) return local
+    return createEmptyStore()
+  })
   const [ready, setReady] = useState(false)
   const skipSave = useRef(true)
 
@@ -46,18 +50,20 @@ export function StoreProvider({ children }) {
       try {
         const remote = await fetchStore()
         if (!live) return
-        if (remote) {
+        if (remote && !looksLikeSample(remote)) {
           setDb(remote)
           saveStore(remote)
         } else {
-          const local = loadStore() || createSeed()
-          setDb(local)
-          saveStore(local)
-          await pushStore(local)
+          const local = loadStore()
+          const next = local && !looksLikeSample(local) ? local : createEmptyStore()
+          setDb(next)
+          saveStore(next)
+          await pushStore(next)
         }
       } catch {
         if (!live) return
-        setDb(loadStore() || createSeed())
+        const local = loadStore()
+        setDb(local && !looksLikeSample(local) ? local : createEmptyStore())
       } finally {
         if (live) {
           skipSave.current = false
