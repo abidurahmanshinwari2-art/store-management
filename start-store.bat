@@ -25,7 +25,7 @@ if not exist "frontend\node_modules" (
   call npm --prefix frontend install
 )
 
-set UI_BUILD=2026-08-30-appname
+set UI_BUILD=2026-08-30-nosample
 set NEED_BUILD=0
 if not exist "frontend\dist\index.html" set NEED_BUILD=1
 if not exist "frontend\dist\.ui-build" set NEED_BUILD=1

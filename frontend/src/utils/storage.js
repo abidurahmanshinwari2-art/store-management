@@ -1,8 +1,8 @@
 import { DEFAULT_RATES } from '../i18n/translations.js'
 
-const STORE_KEY = 'ledgerbay_store_v1'
-const AUTH_KEY = 'ledgerbay_auth_v1'
-const UI_KEY = 'ledgerbay_ui_v1'
+const STORE_KEY = 'gsms_store_v1'
+const AUTH_KEY = 'gsms_auth_v1'
+const UI_KEY = 'gsms_ui_v1'
 
 export function loadStore() {
   try {

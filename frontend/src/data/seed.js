@@ -4,11 +4,10 @@ export const STORE_NAME = 'Hasan Shinwari Genral Store'
 
 export function looksLikeSample(db) {
   return Boolean(
-    db?.users?.some((u) => u.name === 'Amina Karimi' && u.email === 'owner@store.com')
-    && db?.customers?.some((c) => c.id === 'c1' && c.name === 'Ahmad Reza')
-    && db?.sales?.some((s) => s.number === 'INV-0001')
-    && db?.products?.some((p) => p.sku === 'RICE-5')
-    && (db.sales?.length || 0) <= 3,
+    db?.users?.some((u) => u.name === 'Amina Karimi')
+    || db?.customers?.some((c) => c.name === 'Ahmad Reza')
+    || db?.products?.some((p) => p.sku === 'RICE-5' && p.name === 'Basmati Rice 5kg')
+    || db?.suppliers?.some((s) => s.name === 'Highland Wholesale'),
   )
 }
 
