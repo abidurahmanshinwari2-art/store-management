@@ -10,6 +10,8 @@ if errorlevel 1 (
   exit /b 1
 )
 
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-desktop-app.ps1"
+
 for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":3847" ^| findstr "LISTENING"') do (
   taskkill /F /PID %%P >nul 2>nul
 )
