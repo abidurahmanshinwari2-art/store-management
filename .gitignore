@@ -1,0 +1,8 @@
+node_modules/
+frontend/dist/
+backend/data/
+*.tmp
+.DS_Store
+Thumbs.db
+.vscode/
+*.log

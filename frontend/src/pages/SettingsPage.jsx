@@ -1,0 +1,184 @@
+import { useEffect, useState } from 'react'
+import { PageHeader, Field, DataTable, Modal, Money } from '../components/Ui.jsx'
+import { createSeed } from '../data/seed.js'
+import { useStore } from '../context/StoreContext.jsx'
+import { useUi } from '../context/UiContext.jsx'
+import { applyUpdate, fetchServerSettings, fetchUpdate, pushServerSettings } from '../utils/api.js'
+
+const THEMES = [
+  { id: 'pine', colors: ['#12352c', '#c9a227', '#f3f0e6'] },
+  { id: 'ink', colors: ['#d6e4f5', '#e09f1f', '#ffffff'] },
+  { id: 'ruby', colors: ['#f8d9d6', '#e06b4f', '#ffffff'] },
+  { id: 'teal', colors: ['#d2efe9', '#2a9d8f', '#ffffff'] },
+  { id: 'stone', colors: ['#efe4d4', '#d4783a', '#fffdf9'] },
+]
+
+export function SettingsPage({ toast }) {
+  const { db, updateCompany, saveWarehouse, resetDemo } = useStore()
+  const { t, theme, setTheme } = useUi()
+  const [company, setCompany] = useState(db.company)
+  const [wh, setWh] = useState(null)
+  const [sys, setSys] = useState({ version: '', dataPath: '', githubRepo: '' })
+  const [upd, setUpd] = useState(null)
+
+  useEffect(() => {
+    fetchServerSettings()
+      .then(setSys)
+      .catch(() => {})
+  }, [])
+
+  const save = () => {
+    const rate = Number(company.taxRate)
+    if (Number.isNaN(rate) || rate < 0) {
+      toast(t('set.taxRate'), 'bad')
+      return
+    }
+    updateCompany({ ...company, taxRate: rate })
+    toast(t('set.saved'))
+  }
+
+  return (
+    <div className="page">
+      <PageHeader
+        title={t('set.title')}
+        subtitle={t('set.sub')}
+        actions={<button className="btn copper" type="button" onClick={save}>{t('set.save')}</button>}
+      />
+
+      <div className="card card-pad" style={{ marginBottom: 14 }}>
+        <h3>{t('set.look')}</h3>
+        <p className="muted" style={{ margin: '6px 0 14px' }}>{t('set.lookHint')}</p>
+        <div className="theme-grid">
+          {THEMES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`theme-card${theme === item.id ? ' active' : ''}`}
+              onClick={() => setTheme(item.id)}
+            >
+              <div className="theme-swatches">
+                {item.colors.map((color) => (
+                  <i key={color} style={{ background: color }} />
+                ))}
+              </div>
+              <b>{t(`theme.${item.id}`)}</b>
+              <span>{t(`theme.${item.id}Hint`)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid-2">
+        <div className="card card-pad">
+          <h3>{t('set.profile')}</h3>
+          <div className="form-grid">
+            <Field label={t('set.storeName')} full><input value={company.name} onChange={(e) => setCompany({ ...company, name: e.target.value })} /></Field>
+            <Field label={t('set.tagline')} full><input value={company.tagline} onChange={(e) => setCompany({ ...company, tagline: e.target.value })} /></Field>
+            <Field label={t('common.address')} full><input value={company.address} onChange={(e) => setCompany({ ...company, address: e.target.value })} /></Field>
+            <Field label={t('common.phone')}><input value={company.phone} onChange={(e) => setCompany({ ...company, phone: e.target.value })} /></Field>
+            <Field label={t('common.email')}><input value={company.email} onChange={(e) => setCompany({ ...company, email: e.target.value })} /></Field>
+          </div>
+        </div>
+        <div className="card card-pad">
+          <h3>{t('set.money')}</h3>
+          <div className="form-grid">
+            <Field label={t('set.curSym')}><input value={company.currencySymbol} onChange={(e) => setCompany({ ...company, currencySymbol: e.target.value })} /></Field>
+            <Field label={t('set.curCode')}><input value={company.currencyCode} onChange={(e) => setCompany({ ...company, currencyCode: e.target.value })} /></Field>
+            <Field label={t('set.taxName')}><input value={company.taxName} onChange={(e) => setCompany({ ...company, taxName: e.target.value })} /></Field>
+            <Field label={t('set.taxRate')}><input type="number" min="0" step="0.01" value={company.taxRate} onChange={(e) => setCompany({ ...company, taxRate: e.target.value })} /></Field>
+            <Field label={t('set.invPre')}><input value={company.invoicePrefix} onChange={(e) => setCompany({ ...company, invoicePrefix: e.target.value })} /></Field>
+            <Field label={t('set.poPre')}><input value={company.purchasePrefix} onChange={(e) => setCompany({ ...company, purchasePrefix: e.target.value })} /></Field>
+          </div>
+          <p className="muted" style={{ marginTop: 10 }}>
+            <Money value={1234.5} symbol={company.currencySymbol || '$'} /> · {t('set.taxHint')}
+          </p>
+        </div>
+      </div>
+      <div className="card card-pad" style={{ marginTop: 14 }}>
+        <h3>{t('set.rooms')}</h3>
+        <div className="toolbar">
+          <button className="btn ghost" type="button" onClick={() => setWh({ name: '', address: '' })}>{t('set.addRoom')}</button>
+        </div>
+        <DataTable
+          rows={db.warehouses}
+          columns={[
+            { key: 'name', label: t('common.name') },
+            { key: 'address', label: t('common.address') },
+            { key: 'actions', label: '', render: (w) => <button className="btn ghost small" type="button" onClick={() => setWh(w)}>{t('common.edit')}</button> },
+          ]}
+        />
+      </div>
+      <div className="card card-pad" style={{ marginTop: 14 }}>
+        <h3>{t('set.system')}</h3>
+        <p className="muted">{t('set.systemHint')}</p>
+        <div className="form-grid" style={{ marginTop: 12 }}>
+          <Field label={t('set.version')}><input value={sys.version || ''} readOnly /></Field>
+          <Field label={t('set.dataPlace')} full><input value={sys.dataPath || ''} readOnly /></Field>
+          <Field label={t('set.github')} full>
+            <input
+              value={sys.githubRepo || ''}
+              placeholder="your-name/your-repo"
+              onChange={(e) => setSys({ ...sys, githubRepo: e.target.value })}
+            />
+          </Field>
+        </div>
+        <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
+          <button className="btn ghost" type="button" onClick={async () => {
+            try {
+              const saved = await pushServerSettings({ githubRepo: sys.githubRepo })
+              setSys(saved)
+              toast(t('set.saved'))
+            } catch (err) { toast(err.message, 'bad') }
+          }}>{t('set.saveGithub')}</button>
+          <button className="btn copper" type="button" onClick={async () => {
+            try {
+              const row = await fetchUpdate()
+              setUpd(row)
+              toast(row.available ? t('upd.available', { n: row.latest }) : t('upd.none'))
+            } catch { toast(t('upd.offline'), 'bad') }
+          }}>{t('upd.check')}</button>
+          {upd?.available && upd.url ? (
+            <a className="btn ghost" href={upd.url} target="_blank" rel="noreferrer">{t('upd.get')}</a>
+          ) : null}
+          <button className="btn ghost" type="button" onClick={async () => {
+            try {
+              const row = await applyUpdate()
+              toast(row.ok ? row.message : (row.message || t('upd.needGit')), row.ok ? 'ok' : 'bad')
+              if (!row.ok && row.url) window.open(row.url, '_blank')
+            } catch (err) { toast(err.message, 'bad') }
+          }}>{t('upd.apply')}</button>
+        </div>
+      </div>
+      <div className="card card-pad" style={{ marginTop: 14 }}>
+        <h3>{t('set.demo')}</h3>
+        <p className="muted">{t('set.demoHint')}</p>
+        <button className="btn danger" type="button" style={{ marginTop: 10 }} onClick={() => {
+          if (confirm(t('set.resetAsk'))) {
+            resetDemo()
+            setCompany(createSeed().company)
+            toast(t('set.resetOk'))
+          }
+        }}>{t('set.reset')}</button>
+      </div>
+      {wh ? (
+        <Modal
+          title={wh.id ? t('set.editRoom') : t('set.newRoom')}
+          onClose={() => setWh(null)}
+          footer={
+            <>
+              <button className="btn ghost" type="button" onClick={() => setWh(null)}>{t('common.cancel')}</button>
+              <button className="btn copper" type="button" onClick={() => {
+                try { saveWarehouse(wh); setWh(null); toast(t('set.roomSaved')) } catch (err) { toast(err.message, 'bad') }
+              }}>{t('common.save')}</button>
+            </>
+          }
+        >
+          <div className="form-grid">
+            <Field label={t('common.name')}><input value={wh.name} onChange={(e) => setWh({ ...wh, name: e.target.value })} /></Field>
+            <Field label={t('common.address')}><input value={wh.address} onChange={(e) => setWh({ ...wh, address: e.target.value })} /></Field>
+          </div>
+        </Modal>
+      ) : null}
+    </div>
+  )
+}
