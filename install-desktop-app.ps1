@@ -4,7 +4,11 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $root) { $root = Get-Location }
 $iconPath = Join-Path $root 'store.ico'
 $batPath = Join-Path $root 'start-store.bat'
-$name = 'Hasan Shinwari Genral Store'
+$name = 'General Store Management system'
+$oldNames = @(
+  'Hasan Shinwari Genral Store',
+  'Hasan Shinwari General Store'
+)
 
 function New-StoreIcon([string]$path) {
   Add-Type -AssemblyName System.Drawing
@@ -69,12 +73,22 @@ function Add-StoreShortcut([string]$folder) {
   $lnk.TargetPath = $batPath
   $lnk.WorkingDirectory = $root
   $lnk.WindowStyle = 1
-  $lnk.Description = 'Open the store'
+  $lnk.Description = 'Open General Store Management system'
   if (Test-Path $iconPath) { $lnk.IconLocation = $iconPath }
   $lnk.Save()
 }
 
+function Remove-OldShortcut([string]$folder) {
+  if (-not (Test-Path $folder)) { return }
+  foreach ($old in $oldNames) {
+    $oldPath = Join-Path $folder "$old.lnk"
+    if (Test-Path $oldPath) { Remove-Item $oldPath -Force }
+  }
+}
+
 $desktop = [Environment]::GetFolderPath('Desktop')
 $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+Remove-OldShortcut $desktop
+Remove-OldShortcut $startMenu
 Add-StoreShortcut $desktop
 Add-StoreShortcut $startMenu
