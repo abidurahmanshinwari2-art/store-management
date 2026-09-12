@@ -506,6 +506,8 @@ table.data tbody tr:hover {
 .modal footer {
   padding: 16px 20px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
@@ -592,7 +594,7 @@ table.data tbody tr:hover {
 
 .pos {
   display: grid;
-  grid-template-columns: 1.35fr 0.75fr;
+  grid-template-columns: 0.9fr 1.2fr;
   gap: 14px;
   height: calc(100vh - 92px);
 }
@@ -641,7 +643,7 @@ table.data tbody tr:hover {
 .ticket-lines {
   overflow: auto;
   flex: 1;
-  padding: 8px 0;
+  padding: 10px 12px 12px;
 }
 
 .ticket-line {
@@ -651,20 +653,54 @@ table.data tbody tr:hover {
   padding: 8px 16px;
 }
 
+.bill-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bill-table th,
+.bill-table td {
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line);
+}
+
+.bill-table th {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.bill-table td b {
+  font-size: 1.05em;
+}
+
 .qty-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-  margin-top: 6px;
 }
 
 .qty-row button {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   border: 1px solid var(--line-strong);
   background: #fff;
   cursor: pointer;
+  font-size: 18px;
+}
+
+.qty-row input,
+.deal-input {
+  width: 92px;
+  min-height: 38px;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 16px;
 }
 
 .deal-row {
@@ -683,11 +719,34 @@ table.data tbody tr:hover {
 }
 
 .deal-row input {
-  width: 84px;
+  width: 92px;
   border: 1px solid var(--line-strong);
   background: #fff;
-  border-radius: 8px;
-  padding: 4px 8px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 16px;
+}
+
+.save-ok {
+  background: var(--forest-soft);
+  color: var(--forest);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.pick-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.print-sheet {
+  position: fixed;
+  left: -120vw;
+  top: 0;
 }
 
 .ticket-sum {
@@ -1227,7 +1286,8 @@ table.data tbody tr:hover {
   .print-only * {
     visibility: visible;
   }
-  .print-only {
+  .print-only,
+  .print-sheet {
     position: absolute;
     left: 0;
     top: 0;

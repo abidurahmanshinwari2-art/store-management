@@ -35,6 +35,35 @@ function adjustStock(db, { productId, warehouseId, qty, type, ref, date }) {
   })
 }
 
+function buildSaleItems(db, items) {
+  return (items || []).map((item) => {
+    const product = db.products.find((p) => p.id === item.productId)
+    if (!product) throw new Error('A product on this bill was not found.')
+    const qty = Number(item.qty) || 0
+    if (qty < 0) throw new Error('Quantity cannot be negative.')
+    return {
+      productId: product.id,
+      name: product.name,
+      qty,
+      listPrice: round2(item.listPrice ?? product.sellPrice),
+      price: round2(item.price ?? product.sellPrice),
+      discount: round2(item.discount || 0),
+      taxable: product.taxable,
+    }
+  }).filter((item) => item.qty > 0)
+}
+
+function writeSaleTotals(sale, totals, paid) {
+  sale.items = totals.lines
+  sale.listGoods = totals.listGoods
+  sale.billDiscount = totals.billDiscount
+  sale.discount = totals.discount
+  sale.subtotal = totals.subtotal
+  sale.tax = totals.tax
+  sale.total = totals.total
+  sale.paid = paid
+}
+
 export function StoreProvider({ children }) {
   const [db, setDb] = useState(() => {
     const local = loadStore()
@@ -222,21 +251,7 @@ export function StoreProvider({ children }) {
       try {
         const next = structuredClone(prev)
         const rate = Number(next.company.taxRate) || 0
-        const items = payload.items.map((item) => {
-          const product = next.products.find((p) => p.id === item.productId)
-          if (!product) throw new Error('A product on this bill was not found.')
-          const listPrice = round2(item.listPrice ?? product.sellPrice)
-          const price = round2(item.price ?? product.sellPrice)
-          return {
-            productId: product.id,
-            name: product.name,
-            qty: Number(item.qty),
-            listPrice,
-            price,
-            discount: round2(item.discount || 0),
-            taxable: product.taxable,
-          }
-        })
+        const items = buildSaleItems(next, payload.items)
         if (!items.length) throw new Error('Add at least one item.')
         items.forEach((item) => {
           const onHand = next.inventory.find(
@@ -264,19 +279,13 @@ export function StoreProvider({ children }) {
           date: payload.date || todayIso(),
           customerId: payload.customerId || 'walkin',
           warehouseId: payload.warehouseId,
-          items: totals.lines,
-          listGoods: totals.listGoods,
-          billDiscount: totals.billDiscount,
-          discount: totals.discount,
-          subtotal: totals.subtotal,
-          tax: totals.tax,
-          total: totals.total,
-          paid,
           paymentMethod: payload.paymentMethod || 'cash',
           status: 'completed',
           note: payload.note || '',
           userId,
+          returns: [],
         }
+        writeSaleTotals(sale, totals, paid)
         next.movements.forEach((m) => {
           if (m.ref === 'pending') m.ref = sale.number
         })
@@ -299,30 +308,109 @@ export function StoreProvider({ children }) {
     return created
   }
 
-  const returnSale = (saleId, userId) => {
-    setDb((prev) => {
-      const next = structuredClone(prev)
-      const sale = next.sales.find((s) => s.id === saleId)
-      if (!sale || sale.status !== 'completed') throw new Error('This sale cannot be returned.')
-      sale.items.forEach((item) => {
-        adjustStock(next, {
-          productId: item.productId,
-          warehouseId: sale.warehouseId,
-          qty: item.qty,
-          type: 'return',
-          ref: sale.number,
-        })
+  const applySaleChange = (next, sale, payload, userId) => {
+    if (!sale || sale.status === 'returned') throw new Error('This sale cannot be changed.')
+    const oldItems = sale.items || []
+    const newItems = buildSaleItems(next, payload.items)
+    const oldDue = round2(sale.total - sale.paid)
+    const qtyByProduct = (list) => {
+      const map = new Map()
+      list.forEach((line) => {
+        map.set(line.productId, (map.get(line.productId) || 0) + (Number(line.qty) || 0))
       })
-      const due = round2(sale.total - sale.paid)
-      if (due > 0) {
-        const customer = next.customers.find((c) => c.id === sale.customerId)
-        if (customer) customer.balance = round2(Math.max(0, customer.balance - due))
-      }
+      return map
+    }
+    const before = qtyByProduct(oldItems)
+    const after = qtyByProduct(newItems)
+    const ids = new Set([...before.keys(), ...after.keys()])
+    ids.forEach((productId) => {
+      const delta = (after.get(productId) || 0) - (before.get(productId) || 0)
+      if (!delta) return
+      adjustStock(next, {
+        productId,
+        warehouseId: sale.warehouseId,
+        qty: -delta,
+        type: delta < 0 ? 'return' : 'sale',
+        ref: sale.number,
+      })
+    })
+    const totals = docTotals(newItems, Number(next.company.taxRate) || 0, payload.billDiscount)
+    let paid = payload.paid != null ? round2(payload.paid) : sale.paid
+    if (paid > totals.total + 0.001) paid = totals.total
+    const newDue = round2(totals.total - paid)
+    const customer = next.customers.find((c) => c.id === sale.customerId)
+    if (newDue > 0 && (!customer || customer.isWalkIn)) {
+      throw new Error('Credit sales need a named customer.')
+    }
+    if (customer && !customer.isWalkIn) {
+      customer.balance = round2(Math.max(0, customer.balance + (newDue - oldDue)))
+    }
+    const returnedLines = oldItems.map((line) => {
+      const left = after.get(line.productId) || 0
+      const take = Math.max(0, line.qty - left)
+      return take > 0 ? { productId: line.productId, name: line.name, qty: take } : null
+    }).filter(Boolean)
+    if (returnedLines.length) {
+      sale.returns = [...(sale.returns || []), {
+        date: todayIso(),
+        userId,
+        items: returnedLines,
+      }]
+    }
+    writeSaleTotals(sale, totals, paid)
+    if (payload.note != null) sale.note = payload.note
+    sale.editedAt = todayIso()
+    sale.editedBy = userId
+    if (!totals.lines.length) {
       sale.status = 'returned'
       sale.returnedAt = todayIso()
       sale.returnedBy = userId
-      return next
+    } else {
+      sale.status = 'completed'
+    }
+    return sale
+  }
+
+  const updateSale = (saleId, payload, userId) => {
+    let updated
+    let error
+    setDb((prev) => {
+      try {
+        const next = structuredClone(prev)
+        const sale = next.sales.find((s) => s.id === saleId)
+        updated = applySaleChange(next, sale, payload, userId)
+        return next
+      } catch (err) {
+        error = err
+        return prev
+      }
     })
+    if (error) throw error
+    return updated
+  }
+
+  const returnSaleItems = (saleId, returns, userId) => {
+    const sale = db.sales.find((s) => s.id === saleId)
+    if (!sale) throw new Error('This sale cannot be returned.')
+    const take = new Map((returns || []).map((row) => [row.productId, Math.max(0, Number(row.qty) || 0)]))
+    const items = (sale.items || []).map((line) => ({
+      ...line,
+      qty: Math.max(0, line.qty - (take.get(line.productId) || 0)),
+    }))
+    return updateSale(saleId, {
+      items,
+      billDiscount: sale.billDiscount,
+      note: sale.note,
+    }, userId)
+  }
+
+  const returnSale = (saleId, userId) => {
+    const sale = db.sales.find((s) => s.id === saleId)
+    if (!sale) throw new Error('This sale cannot be returned.')
+    return returnSaleItems(saleId, (sale.items || []).map((line) => ({
+      productId: line.productId,
+      qty: line.qty,
+    })), userId)
   }
 
   const createPurchase = (payload, userId) => {
@@ -574,6 +662,8 @@ export function StoreProvider({ children }) {
       },
       createSale,
       attachBillByNumber,
+      updateSale,
+      returnSaleItems,
       returnSale,
       createPurchase,
       receivePurchase,

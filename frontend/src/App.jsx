@@ -55,7 +55,7 @@ export default function App() {
   const toast = (message, type = 'ok') => {
     const id = uid('t-')
     setToasts((list) => [...list, { id, message, type }])
-    setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), 3200)
+    setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), 5000)
   }
 
   return (

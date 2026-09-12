@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BarcodeCamera } from '../components/BarcodeCamera.jsx'
+import { BillReceipt } from '../components/BillReceipt.jsx'
 import { Field, Modal, Money } from '../components/Ui.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
@@ -148,7 +149,7 @@ export function POSPage({ toast }) {
       setBillOff('')
       setHoldId(null)
       setMethod('cash')
-      toast(t('pos.saved', { n: sale.number }))
+      toast(t('pos.savedOk', { n: sale.number }))
       window.setTimeout(() => scanRef.current?.focus(), 0)
     } catch (err) {
       toast(err.message, 'bad')
@@ -197,7 +198,7 @@ export function POSPage({ toast }) {
             ))}
           </div>
         </section>
-        <aside className="ticket">
+        <aside className="ticket ticket-wide">
           <header>
             <div>
               <b>{t('pos.bill')}</b>
@@ -208,36 +209,48 @@ export function POSPage({ toast }) {
             </select>
           </header>
           <div className="ticket-lines">
-            {cart.length === 0 ? <div className="empty">{t('pos.empty')}</div> : cart.map((line) => (
-              <div className="ticket-line" key={line.productId}>
-                <div>
-                  <b>{line.name}</b>
-                  <div className="qty-row">
-                    <button type="button" onClick={() => setQty(line.productId, line.qty - 1)}>-</button>
-                    <input
-                      style={{ width: 54 }}
-                      value={line.qty}
-                      onChange={(e) => setQty(line.productId, e.target.value)}
-                    />
-                    <button type="button" onClick={() => setQty(line.productId, line.qty + 1)}>+</button>
-                    <span className="muted">{t('pos.list')} <Money value={line.listPrice ?? line.price} /></span>
-                  </div>
-                  <div className="deal-row">
-                    <label>
-                      {t('pos.deal')}
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={line.price}
-                        onChange={(e) => setDeal(line.productId, e.target.value)}
-                      />
-                    </label>
-                  </div>
-                </div>
-                <b><Money value={line.qty * line.price - (line.discount || 0)} /></b>
-              </div>
-            ))}
+            {cart.length === 0 ? <div className="empty">{t('pos.empty')}</div> : (
+              <table className="bill-table">
+                <thead>
+                  <tr>
+                    <th>{t('common.item')}</th>
+                    <th>{t('common.qty')}</th>
+                    <th>{t('pos.list')}</th>
+                    <th>{t('pos.deal')}</th>
+                    <th>{t('common.line')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.map((line) => (
+                    <tr key={line.productId}>
+                      <td><b>{line.name}</b></td>
+                      <td>
+                        <div className="qty-row">
+                          <button type="button" onClick={() => setQty(line.productId, line.qty - 1)}>-</button>
+                          <input
+                            value={line.qty}
+                            onChange={(e) => setQty(line.productId, e.target.value)}
+                          />
+                          <button type="button" onClick={() => setQty(line.productId, line.qty + 1)}>+</button>
+                        </div>
+                      </td>
+                      <td className="muted"><Money value={line.listPrice ?? line.price} /></td>
+                      <td>
+                        <input
+                          className="deal-input"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={line.price}
+                          onChange={(e) => setDeal(line.productId, e.target.value)}
+                        />
+                      </td>
+                      <td><b><Money value={line.qty * line.price - (line.discount || 0)} /></b></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
           <div className="ticket-sum">
             {totals.discount > 0 ? (
@@ -285,6 +298,14 @@ export function POSPage({ toast }) {
             </Field>
             <div className="toolbar" style={{ marginTop: 10, marginBottom: 0 }}>
               <button className="btn copper" type="button" disabled={!cart.length} onClick={checkout}>{t('pos.charge')}</button>
+              <button
+                className="btn ghost"
+                type="button"
+                disabled={!cart.length}
+                onClick={() => window.print()}
+              >
+                {t('common.print')}
+              </button>
               <button
                 className="btn ghost"
                 type="button"
@@ -337,7 +358,7 @@ export function POSPage({ toast }) {
       ) : null}
       {receipt ? (
         <Modal
-          title={t('pos.receipt', { n: receipt.number })}
+          title={t('pos.savedOk', { n: receipt.number })}
           onClose={() => setReceipt(null)}
           footer={
             <>
@@ -346,33 +367,24 @@ export function POSPage({ toast }) {
             </>
           }
         >
-          <div className="receipt print-only">
-            <h2>{db.company.name}</h2>
-            <p>{db.company.address}<br />{db.company.phone}</p>
-            <p>{receipt.number}</p>
-            <table>
-              <tbody>
-                {receipt.items.map((l) => (
-                  <tr key={l.productId}>
-                    <td>
-                      {l.name} × {l.qty}
-                      {l.listPrice != null && l.listPrice !== l.price ? (
-                        <span> ({t('pos.deal')} <Money value={l.price} />)</span>
-                      ) : null}
-                    </td>
-                    <td><Money value={l.total} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {receipt.discount > 0 ? <p>{t('pos.off')}: <Money value={receipt.discount} /></p> : null}
-            <p>{db.company.taxName}: <Money value={receipt.tax} /></p>
-            <p><b>{t('pos.total')} <Money value={receipt.total} /></b></p>
-            <p>{t('common.paid')} <Money value={receipt.paid} /></p>
-            <p>{t('pos.thankYou')}</p>
-          </div>
+          <p className="save-ok">{t('pos.savedOk', { n: receipt.number })}</p>
+          <BillReceipt company={db.company} sale={receipt} t={t} />
         </Modal>
-      ) : null}
+      ) : (
+        <BillReceipt
+          forPrint
+          company={db.company}
+          sale={{
+            number: t('pos.bill'),
+            items: totals.lines,
+            discount: totals.discount,
+            tax: totals.tax,
+            total: totals.total,
+            paid: method === 'credit' ? 0 : paidNum,
+          }}
+          t={t}
+        />
+      )}
     </div>
   )
 }
