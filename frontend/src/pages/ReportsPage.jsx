@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { PageHeader, DataTable, StatCard, Money } from '../components/Ui.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
-import { cogsOf } from '../lib/calc.js'
+import { cogsOf, saleCompromise } from '../lib/calc.js'
 import { dateBoth, downloadCsv, money, round2 } from '../utils/format.js'
 import { inMonth, meladiMonthName, monthKeyOf, monthOptionLabel, parseMonthKey } from '../utils/jalali.js'
 
@@ -33,6 +33,7 @@ export function ReportsPage() {
   const salesTotal = round2(sales.reduce((s, r) => s + r.total, 0))
   const salesPaid = round2(sales.reduce((s, r) => s + r.paid, 0))
   const tax = round2(sales.reduce((s, r) => s + r.tax, 0))
+  const discounts = round2(sales.reduce((s, r) => s + saleCompromise(r), 0))
   const buysTotal = round2(purchases.reduce((s, r) => s + r.total, 0))
   const costsTotal = round2(expenses.reduce((s, e) => s + e.amount, 0))
   const cogs = round2(sales.reduce((s, r) => s + cogsOf(r.items, db.products), 0))
@@ -73,11 +74,12 @@ export function ReportsPage() {
       [t('rep.monthCosts'), round2(listCosts.reduce((s, e) => s + e.amount, 0))],
       [],
       [t('rep.bills')],
-      [t('dash.invoice'), t('common.date'), t('sales.customer'), t('pos.subtotal'), t('pos.tax'), t('common.total'), t('common.paid'), t('common.status')],
+      [t('dash.invoice'), t('common.date'), t('sales.customer'), t('pos.off'), t('pos.subtotal'), t('pos.tax'), t('common.total'), t('common.paid'), t('common.status')],
       ...listSales.map((s) => [
         s.number,
         dateBoth(s.date),
         db.customers.find((c) => c.id === s.customerId)?.name,
+        saleCompromise(s),
         s.subtotal,
         s.tax,
         s.total,
@@ -139,6 +141,7 @@ export function ReportsPage() {
 
       <div className="stats">
         <StatCard label={t('rep.monthSales')} value={<Money value={salesTotal} />} hint={tRich('rep.paidHint', { n: <Money value={salesPaid} /> })} />
+        <StatCard label={t('pos.off')} value={<Money value={discounts} />} hint={t('pos.offHint')} />
         <StatCard label={t('rep.monthBuys')} value={<Money value={buysTotal} />} />
         <StatCard label={t('rep.monthCosts')} value={<Money value={costsTotal} />} />
         <StatCard label={t('rep.monthProfit')} value={<Money value={profit} />} hint={t('pos.tax') + ' ' + money(tax, symbol)} />

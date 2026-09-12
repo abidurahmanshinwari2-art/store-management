@@ -9,14 +9,42 @@ export function lineTotals({ qty, price, discount = 0, taxable }, taxRate) {
   return { subtotal, tax, total: round2(subtotal + tax) }
 }
 
-export function docTotals(items, taxRate) {
+export function listUnit(line) {
+  return Number(line?.listPrice ?? line?.price) || 0
+}
+
+export function saleCompromise(sale) {
+  if (sale && sale.discount != null && sale.discount !== '') {
+    return round2(Number(sale.discount) || 0)
+  }
+  return round2((sale?.items || []).reduce((sum, line) => {
+    const qty = Number(line.qty) || 0
+    return sum + Math.max(0, (listUnit(line) - (Number(line.price) || 0)) * qty) + (Number(line.discount) || 0)
+  }, 0) + (Number(sale?.billDiscount) || 0))
+}
+
+export function docTotals(items, taxRate, billDiscount = 0) {
   const lines = (items || []).map((item) => ({
     ...item,
+    listPrice: listUnit(item),
     ...lineTotals(item, taxRate),
   }))
-  const subtotal = round2(lines.reduce((sum, line) => sum + line.subtotal, 0))
-  const tax = round2(lines.reduce((sum, line) => sum + line.tax, 0))
-  return { lines, subtotal, tax, total: round2(subtotal + tax) }
+  const listGoods = round2(lines.reduce((sum, line) => sum + listUnit(line) * (Number(line.qty) || 0), 0))
+  const goods = round2(lines.reduce((sum, line) => sum + line.subtotal, 0))
+  const offBill = round2(Math.min(Math.max(0, Number(billDiscount) || 0), goods))
+  const factor = goods > 0 ? (goods - offBill) / goods : 1
+  const tax = round2(lines.reduce((sum, line) => sum + line.tax, 0) * factor)
+  const subtotal = round2(goods - offBill)
+  return {
+    lines,
+    listGoods,
+    goods,
+    billDiscount: offBill,
+    discount: round2(listGoods - subtotal),
+    subtotal,
+    tax,
+    total: round2(subtotal + tax),
+  }
 }
 
 export function cogsOf(items, products) {

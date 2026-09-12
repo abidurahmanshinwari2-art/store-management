@@ -23,6 +23,7 @@ export function POSPage({ toast }) {
   const [note, setNote] = useState('')
   const [receipt, setReceipt] = useState(null)
   const [holdId, setHoldId] = useState(null)
+  const [billOff, setBillOff] = useState('')
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -49,6 +50,7 @@ export function POSPage({ toast }) {
         productId: product.id,
         name: product.name,
         qty: 1,
+        listPrice: product.sellPrice,
         price: product.sellPrice,
         discount: 0,
         taxable: product.taxable,
@@ -113,7 +115,12 @@ export function POSPage({ toast }) {
     else setCart((prev) => prev.map((l) => (l.productId === productId ? { ...l, qty: n } : l)))
   }
 
-  const totals = docTotals(cart, taxRate)
+  const setDeal = (productId, value) => {
+    const n = Math.max(0, Number(value) || 0)
+    setCart((prev) => prev.map((l) => (l.productId === productId ? { ...l, price: n } : l)))
+  }
+
+  const totals = docTotals(cart, taxRate, billOff)
   const paidNum = paid === '' ? totals.total : round2(paid)
   const change = round2(Math.max(0, paidNum - totals.total))
 
@@ -132,11 +139,13 @@ export function POSPage({ toast }) {
         paymentMethod: method,
         note,
         holdId,
+        billDiscount: billOff,
       }, user.id)
       setReceipt(sale)
       setCart([])
       setPaid('')
       setNote('')
+      setBillOff('')
       setHoldId(null)
       setMethod('cash')
       toast(t('pos.saved', { n: sale.number }))
@@ -211,17 +220,45 @@ export function POSPage({ toast }) {
                       onChange={(e) => setQty(line.productId, e.target.value)}
                     />
                     <button type="button" onClick={() => setQty(line.productId, line.qty + 1)}>+</button>
-                    <span className="muted"><Money value={line.price} /></span>
+                    <span className="muted">{t('pos.list')} <Money value={line.listPrice ?? line.price} /></span>
+                  </div>
+                  <div className="deal-row">
+                    <label>
+                      {t('pos.deal')}
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.price}
+                        onChange={(e) => setDeal(line.productId, e.target.value)}
+                      />
+                    </label>
                   </div>
                 </div>
-                <b><Money value={line.qty * line.price - line.discount} /></b>
+                <b><Money value={line.qty * line.price - (line.discount || 0)} /></b>
               </div>
             ))}
           </div>
           <div className="ticket-sum">
+            {totals.discount > 0 ? (
+              <div className="sum-row"><span>{t('pos.listGoods')}</span><span><Money value={totals.listGoods} /></span></div>
+            ) : null}
+            {totals.discount > 0 ? (
+              <div className="sum-row"><span>{t('pos.off')}</span><span>− <Money value={totals.discount} /></span></div>
+            ) : null}
             <div className="sum-row"><span>{t('pos.subtotal')}</span><span><Money value={totals.subtotal} /></span></div>
             <div className="sum-row"><span>{t('pos.tax')}</span><span><Money value={totals.tax} /></span></div>
             <div className="sum-row total"><span>{t('pos.total')}</span><span><Money value={totals.total} /></span></div>
+            <Field label={t('pos.billOff')} full>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={billOff}
+                onChange={(e) => setBillOff(e.target.value)}
+                placeholder="0"
+              />
+            </Field>
             <div className="form-grid" style={{ marginTop: 10 }}>
               <Field label={t('pos.payMethod')}>
                 <select value={method} onChange={(e) => setMethod(e.target.value)}>
@@ -253,7 +290,8 @@ export function POSPage({ toast }) {
                 type="button"
                 disabled={!cart.length}
                 onClick={() => {
-                  holdSale({ items: cart, warehouseId, customerId, note })
+                  holdSale({ items: cart, warehouseId, customerId, note, billDiscount: Number(billOff) || 0 })
+                  setBillOff('')
                   setCart([])
                   toast(t('pos.heldOk'))
                 }}
@@ -275,6 +313,7 @@ export function POSPage({ toast }) {
                       setWarehouseId(h.warehouseId)
                       setCustomerId(h.customerId)
                       setNote(h.note || '')
+                      setBillOff(h.billDiscount || '')
                       setHoldId(h.id)
                       deleteHold(h.id)
                     }}
@@ -315,12 +354,18 @@ export function POSPage({ toast }) {
               <tbody>
                 {receipt.items.map((l) => (
                   <tr key={l.productId}>
-                    <td>{l.name} × {l.qty}</td>
+                    <td>
+                      {l.name} × {l.qty}
+                      {l.listPrice != null && l.listPrice !== l.price ? (
+                        <span> ({t('pos.deal')} <Money value={l.price} />)</span>
+                      ) : null}
+                    </td>
                     <td><Money value={l.total} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {receipt.discount > 0 ? <p>{t('pos.off')}: <Money value={receipt.discount} /></p> : null}
             <p>{db.company.taxName}: <Money value={receipt.tax} /></p>
             <p><b>{t('pos.total')} <Money value={receipt.total} /></b></p>
             <p>{t('common.paid')} <Money value={receipt.paid} /></p>

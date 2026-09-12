@@ -225,11 +225,14 @@ export function StoreProvider({ children }) {
         const items = payload.items.map((item) => {
           const product = next.products.find((p) => p.id === item.productId)
           if (!product) throw new Error('A product on this bill was not found.')
+          const listPrice = round2(item.listPrice ?? product.sellPrice)
+          const price = round2(item.price ?? product.sellPrice)
           return {
             productId: product.id,
             name: product.name,
             qty: Number(item.qty),
-            price: round2(item.price ?? product.sellPrice),
+            listPrice,
+            price,
             discount: round2(item.discount || 0),
             taxable: product.taxable,
           }
@@ -243,7 +246,7 @@ export function StoreProvider({ children }) {
             throw new Error(`${item.name} has only ${onHand} in this warehouse.`)
           }
         })
-        const totals = docTotals(items, rate)
+        const totals = docTotals(items, rate, payload.billDiscount)
         const paid = round2(payload.paid ?? totals.total)
         if (paid > totals.total + 0.001) throw new Error('Paid amount cannot exceed the bill total.')
         items.forEach((item) => {
@@ -262,6 +265,9 @@ export function StoreProvider({ children }) {
           customerId: payload.customerId || 'walkin',
           warehouseId: payload.warehouseId,
           items: totals.lines,
+          listGoods: totals.listGoods,
+          billDiscount: totals.billDiscount,
+          discount: totals.discount,
           subtotal: totals.subtotal,
           tax: totals.tax,
           total: totals.total,

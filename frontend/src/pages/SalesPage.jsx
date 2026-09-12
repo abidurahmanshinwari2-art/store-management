@@ -3,6 +3,7 @@ import { PageHeader, DataTable, Badge, Modal, Money } from '../components/Ui.jsx
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
+import { saleCompromise } from '../lib/calc.js'
 import { dateFmt } from '../utils/format.js'
 
 export function SalesPage({ toast }) {
@@ -21,6 +22,7 @@ export function SalesPage({ toast }) {
             { key: 'number', label: t('dash.invoice') },
             { key: 'date', label: t('common.date'), render: (s) => dateFmt(s.date) },
             { key: 'customer', label: t('sales.customer'), render: (s) => db.customers.find((c) => c.id === s.customerId)?.name || '—' },
+            { key: 'discount', label: t('pos.off'), render: (s) => <Money value={saleCompromise(s)} /> },
             { key: 'total', label: t('common.total'), render: (s) => <Money value={s.total} /> },
             { key: 'paid', label: t('common.paid'), render: (s) => <Money value={s.paid} /> },
             { key: 'method', label: t('common.method'), render: (s) => s.paymentMethod },
@@ -56,11 +58,13 @@ export function SalesPage({ toast }) {
             columns={[
               { key: 'name', label: t('common.item') },
               { key: 'qty', label: t('common.qty') },
-              { key: 'price', label: t('common.price'), render: (i) => <Money value={i.price} /> },
+              { key: 'listPrice', label: t('pos.list'), render: (i) => <Money value={i.listPrice ?? i.price} /> },
+              { key: 'price', label: t('pos.deal'), render: (i) => <Money value={i.price} /> },
               { key: 'total', label: t('common.line'), render: (i) => <Money value={i.total} /> },
             ]}
           />
           <p style={{ marginTop: 12 }}>
+            {saleCompromise(view) > 0 ? <>{t('pos.off')} <Money value={saleCompromise(view)} /> · </> : null}
             {t('pos.subtotal')} <Money value={view.subtotal} /> · {t('pos.tax')} <Money value={view.tax} /> · {t('common.total')} <Money value={view.total} />
           </p>
         </Modal>

@@ -2,13 +2,14 @@ import { PageHeader, StatCard, DataTable, Money } from '../components/Ui.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
 import { round2 } from '../utils/format.js'
-import { cogsOf } from '../lib/calc.js'
+import { cogsOf, saleCompromise } from '../lib/calc.js'
 
 export function AccountingPage() {
   const { db } = useStore()
   const { t, tRich } = useUi()
   const sales = db.sales.filter((s) => s.status === 'completed')
   const revenue = round2(sales.reduce((s, r) => s + r.subtotal, 0))
+  const discounts = round2(sales.reduce((s, r) => s + saleCompromise(r), 0))
   const taxCollected = round2(sales.reduce((s, r) => s + r.tax, 0))
   const cogs = round2(sales.reduce((s, r) => s + cogsOf(r.items, db.products), 0))
   const expenses = round2(db.expenses.reduce((s, e) => e.amount + s, 0))
@@ -33,6 +34,7 @@ export function AccountingPage() {
       />
       <div className="stats">
         <StatCard label={t('acc.salesEx')} value={<Money value={revenue} />} />
+        <StatCard label={t('pos.off')} value={<Money value={discounts} />} hint={t('pos.offHint')} />
         <StatCard label={t('acc.tax', { name: db.company.taxName })} value={<Money value={taxCollected} />} />
         <StatCard label={t('acc.gross')} value={<Money value={gross} />} hint={t('acc.grossHint')} />
         <StatCard label={t('acc.net')} value={<Money value={net} />} />
@@ -74,6 +76,7 @@ export function AccountingPage() {
         <table className="data">
           <tbody>
             <tr><td>{t('acc.salesEx')}</td><td><Money value={revenue} /></td></tr>
+            <tr><td>{t('pos.off')}</td><td><Money value={discounts} /></td></tr>
             <tr><td>{t('acc.cogs')}</td><td><Money value={cogs} /></td></tr>
             <tr><td>{t('acc.gross')}</td><td><Money value={gross} /></td></tr>
             <tr><td>{t('acc.opex')}</td><td><Money value={expenses} /></td></tr>
