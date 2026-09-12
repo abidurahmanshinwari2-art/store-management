@@ -267,7 +267,7 @@ export function POSPage({ toast }) {
                 placeholder="0"
               />
             </Field>
-            <div className="form-grid" style={{ marginTop: 10 }}>
+            <div className="form-grid">
               <Field label={t('pos.payMethod')}>
                 <select value={method} onChange={(e) => setMethod(e.target.value)}>
                   <option value="cash">{t('pos.cash')}</option>
@@ -291,7 +291,7 @@ export function POSPage({ toast }) {
             <Field label={t('common.note')} full>
               <input value={note} onChange={(e) => setNote(e.target.value)} />
             </Field>
-            <div className="toolbar" style={{ marginTop: 10, marginBottom: 0 }}>
+            <div className="toolbar">
               <button className="btn copper" type="button" disabled={!cart.length} onClick={checkout}>{t('pos.charge')}</button>
               <button
                 className="btn ghost"
@@ -308,7 +308,7 @@ export function POSPage({ toast }) {
               </button>
             </div>
             {db.holds.length ? (
-              <div style={{ marginTop: 10 }}>
+              <div style={{ marginTop: 6 }}>
                 <div className="muted">{t('pos.held')}</div>
                 {db.holds.map((h) => (
                   <button
