@@ -692,10 +692,9 @@ table.data tbody tr:hover {
 .bill-item-card {
   background: #fff;
   border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 12px;
-  min-height: 220px;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
 }
 
 .ticket .bill-item-card {
@@ -708,12 +707,12 @@ table.data tbody tr:hover {
 
 .bill-item-name {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .bill-item-card .bill-item-name {
-  margin-bottom: 12px;
-  font-size: 13px;
+  margin-bottom: 8px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -743,31 +742,42 @@ table.data tbody tr:hover {
 .bill-item-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px 12px;
-  align-items: end;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.ticket .bill-item-card .bill-item-cols {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  grid-template-rows: 52px 52px;
 }
 
 .bill-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   min-width: 0;
 }
 
 .bill-col span {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--muted);
+  line-height: 1.2;
 }
 
 .bill-col strong {
-  min-height: 48px;
+  min-height: 30px;
   display: flex;
   align-items: center;
 }
 
 .bill-item-card .bill-col strong {
-  min-height: 52px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
 }
 
 .bill-col-deal .deal-input {
@@ -776,41 +786,43 @@ table.data tbody tr:hover {
 
 .qty-row {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
 }
 
 .qty-row button {
-  width: 44px;
-  height: 48px;
-  flex: 0 0 44px;
-  border-radius: 10px;
+  width: 28px;
+  height: 30px;
+  flex: 0 0 28px;
+  border-radius: 8px;
   border: 1px solid var(--line-strong);
   background: #fff;
   cursor: pointer;
 }
 
 .bill-item-card .qty-row button {
-  width: 48px;
-  height: 52px;
-  flex: 0 0 48px;
+  width: 28px;
+  height: 30px;
+  flex: 0 0 28px;
 }
 
 .qty-row input,
 .deal-input {
   width: 100%;
-  min-width: 56px;
-  min-height: 48px;
+  min-width: 0;
+  min-height: 30px;
+  height: 30px;
   border: 1px solid var(--line-strong);
   background: #fff;
-  border-radius: 10px;
-  padding: 8px 10px;
+  border-radius: 8px;
+  padding: 4px 6px;
   appearance: textfield;
 }
 
 .bill-item-card .qty-row input,
 .bill-item-card .deal-input {
-  min-height: 52px;
+  min-height: 30px;
+  height: 30px;
 }
 
 .qty-row input::-webkit-outer-spin-button,
