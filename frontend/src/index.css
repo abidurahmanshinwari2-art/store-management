@@ -681,10 +681,28 @@ table.data tbody tr:hover {
   border-bottom: 1px solid var(--line);
 }
 
+.bill-item-card {
+  background: #fff;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.ticket .bill-item-card:last-child {
+  margin-bottom: 0;
+}
+
 .bill-item-name {
   display: block;
   margin-bottom: 10px;
   font-size: 1.05em;
+}
+
+.bill-item-card .bill-item-name {
+  margin-bottom: 14px;
+  font-size: 1.2em;
 }
 
 .bill-item-head {
@@ -701,8 +719,8 @@ table.data tbody tr:hover {
 
 .bill-item-cols {
   display: grid;
-  grid-template-columns: minmax(132px, 1.3fr) minmax(72px, 0.7fr) minmax(110px, 1.2fr) minmax(72px, 0.8fr);
-  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 12px;
   align-items: end;
 }
 
@@ -720,10 +738,15 @@ table.data tbody tr:hover {
 }
 
 .bill-col strong {
-  min-height: 44px;
+  min-height: 48px;
   display: flex;
   align-items: center;
-  font-size: 17px;
+  font-size: 18px;
+}
+
+.bill-item-card .bill-col strong {
+  min-height: 52px;
+  font-size: 20px;
 }
 
 .bill-col-deal .deal-input {
@@ -737,26 +760,38 @@ table.data tbody tr:hover {
 }
 
 .qty-row button {
-  width: 40px;
-  height: 44px;
-  flex: 0 0 40px;
+  width: 44px;
+  height: 48px;
+  flex: 0 0 44px;
   border-radius: 10px;
   border: 1px solid var(--line-strong);
   background: #fff;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 22px;
+}
+
+.bill-item-card .qty-row button {
+  width: 48px;
+  height: 52px;
+  flex: 0 0 48px;
 }
 
 .qty-row input,
 .deal-input {
   width: 100%;
   min-width: 56px;
-  min-height: 44px;
+  min-height: 48px;
   border: 1px solid var(--line-strong);
   background: #fff;
   border-radius: 10px;
   padding: 8px 10px;
   font-size: 18px;
+}
+
+.bill-item-card .qty-row input,
+.bill-item-card .deal-input {
+  min-height: 52px;
+  font-size: 20px;
 }
 
 .deal-row {

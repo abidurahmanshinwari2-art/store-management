@@ -159,7 +159,7 @@ export function SalesPage({ toast }) {
         >
           <p className="muted">{dateFmt(live.date)} · {db.customers.find((c) => c.id === live.customerId)?.name}</p>
           {(live.items || []).map((line) => (
-            <div className="bill-item" key={line.productId}>
+            <div className="bill-item bill-item-card" key={line.productId}>
               <b className="bill-item-name">{line.name}</b>
               <div className="bill-item-cols">
                 <div className="bill-col">
@@ -206,7 +206,7 @@ export function SalesPage({ toast }) {
         >
           <p className="muted">{t('sales.editSub')}</p>
           {edit.items.map((line) => (
-            <div className="bill-item" key={line.productId}>
+            <div className="bill-item bill-item-card" key={line.productId}>
               <div className="bill-item-head">
                 <b className="bill-item-name">{line.name}</b>
                 <button className="btn ghost small" type="button" onClick={() => {

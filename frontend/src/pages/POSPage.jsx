@@ -210,7 +210,7 @@ export function POSPage({ toast }) {
           </header>
           <div className="ticket-lines">
             {cart.length === 0 ? <div className="empty">{t('pos.empty')}</div> : cart.map((line) => (
-              <div className="bill-item" key={line.productId}>
+              <div className="bill-item bill-item-card" key={line.productId}>
                 <b className="bill-item-name">{line.name}</b>
                 <div className="bill-item-cols">
                   <label className="bill-col">
