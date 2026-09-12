@@ -209,6 +209,7 @@ export function POSPage({ toast }) {
             </select>
           </header>
           <div className="ticket-lines">
+            <div className="ticket-items-label">{t('pos.items')}</div>
             {cart.length === 0 ? <div className="empty">{t('pos.empty')}</div> : cart.map((line) => (
               <div className="bill-item bill-item-card" key={line.productId}>
                 <b className="bill-item-name">{line.name}</b>
@@ -218,8 +219,7 @@ export function POSPage({ toast }) {
                     <div className="qty-row">
                       <button type="button" onClick={() => setQty(line.productId, line.qty - 1)}>-</button>
                       <input
-                        type="number"
-                        min="0"
+                        inputMode="numeric"
                         value={line.qty}
                         onChange={(e) => setQty(line.productId, e.target.value)}
                       />
@@ -234,9 +234,7 @@ export function POSPage({ toast }) {
                     <span>{t('pos.deal')}</span>
                     <input
                       className="deal-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      inputMode="decimal"
                       value={line.price}
                       onChange={(e) => setDeal(line.productId, e.target.value)}
                     />
