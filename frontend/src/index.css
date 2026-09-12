@@ -594,7 +594,7 @@ table.data tbody tr:hover {
 
 .pos {
   display: grid;
-  grid-template-columns: 0.9fr 1.2fr;
+  grid-template-columns: 1.35fr 0.75fr;
   gap: 14px;
   height: calc(100vh - 92px);
 }
@@ -676,31 +676,87 @@ table.data tbody tr:hover {
   font-size: 1.05em;
 }
 
+.bill-item {
+  padding: 12px 4px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.bill-item-name {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 1.05em;
+}
+
+.bill-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bill-item-head .bill-item-name {
+  margin-bottom: 0;
+}
+
+.bill-item-cols {
+  display: grid;
+  grid-template-columns: minmax(132px, 1.3fr) minmax(72px, 0.7fr) minmax(110px, 1.2fr) minmax(72px, 0.8fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.bill-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bill-col span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.bill-col strong {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 17px;
+}
+
+.bill-col-deal .deal-input {
+  width: 100%;
+}
+
 .qty-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
 .qty-row button {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 44px;
+  flex: 0 0 40px;
   border-radius: 10px;
   border: 1px solid var(--line-strong);
   background: #fff;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .qty-row input,
 .deal-input {
-  width: 92px;
-  min-height: 38px;
+  width: 100%;
+  min-width: 56px;
+  min-height: 44px;
   border: 1px solid var(--line-strong);
   background: #fff;
   border-radius: 10px;
   padding: 8px 10px;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .deal-row {

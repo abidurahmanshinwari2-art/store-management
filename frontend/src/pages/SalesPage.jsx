@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { BillReceipt } from '../components/BillReceipt.jsx'
 import { PageHeader, DataTable, Badge, Modal, Field, Money } from '../components/Ui.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
@@ -154,22 +153,34 @@ export function SalesPage({ toast }) {
                   }}>{t('sales.returnAll')}</button>
                 </>
               ) : <span />}
-              <button className="btn copper" type="button" onClick={() => window.print()}>{t('common.print')}</button>
               <button className="btn ghost" type="button" onClick={() => setView(null)}>{t('common.close')}</button>
             </>
           }
         >
           <p className="muted">{dateFmt(live.date)} · {db.customers.find((c) => c.id === live.customerId)?.name}</p>
-          <DataTable
-            rows={live.items.map((i, n) => ({ ...i, id: n }))}
-            columns={[
-              { key: 'name', label: t('common.item') },
-              { key: 'qty', label: t('common.qty') },
-              { key: 'listPrice', label: t('pos.list'), render: (i) => <Money value={i.listPrice ?? i.price} /> },
-              { key: 'price', label: t('pos.deal'), render: (i) => <Money value={i.price} /> },
-              { key: 'total', label: t('common.line'), render: (i) => <Money value={i.total} /> },
-            ]}
-          />
+          {(live.items || []).map((line) => (
+            <div className="bill-item" key={line.productId}>
+              <b className="bill-item-name">{line.name}</b>
+              <div className="bill-item-cols">
+                <div className="bill-col">
+                  <span>{t('common.qty')}</span>
+                  <strong>{line.qty}</strong>
+                </div>
+                <div className="bill-col">
+                  <span>{t('pos.list')}</span>
+                  <strong><Money value={line.listPrice ?? line.price} /></strong>
+                </div>
+                <div className="bill-col">
+                  <span>{t('pos.deal')}</span>
+                  <strong><Money value={line.price} /></strong>
+                </div>
+                <div className="bill-col">
+                  <span>{t('common.line')}</span>
+                  <strong><Money value={line.total} /></strong>
+                </div>
+              </div>
+            </div>
+          ))}
           <p style={{ marginTop: 12 }}>
             {saleCompromise(live) > 0 ? <>{t('pos.off')} <Money value={saleCompromise(live)} /> · </> : null}
             {t('pos.subtotal')} <Money value={live.subtotal} /> · {t('pos.tax')} <Money value={live.tax} /> · {t('common.total')} <Money value={live.total} />
@@ -179,7 +190,6 @@ export function SalesPage({ toast }) {
               {t('sales.returnLog')}: {live.returns.map((row) => row.items.map((i) => `${i.name} × ${i.qty}`).join(', ')).join(' · ')}
             </p>
           ) : null}
-          <BillReceipt forPrint company={db.company} sale={live} t={t} />
         </Modal>
       ) : null}
       {edit ? (
@@ -195,49 +205,47 @@ export function SalesPage({ toast }) {
           }
         >
           <p className="muted">{t('sales.editSub')}</p>
-          <table className="bill-table">
-            <thead>
-              <tr>
-                <th>{t('common.item')}</th>
-                <th>{t('common.qty')}</th>
-                <th>{t('pos.list')}</th>
-                <th>{t('pos.deal')}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {edit.items.map((line) => (
-                <tr key={line.productId}>
-                  <td><b>{line.name}</b></td>
-                  <td>
-                    <input
-                      className="deal-input"
-                      type="number"
-                      min="0"
-                      value={line.qty}
-                      onChange={(e) => setEditLine(line.productId, { qty: e.target.value })}
-                    />
-                  </td>
-                  <td className="muted"><Money value={line.listPrice ?? line.price} /></td>
-                  <td>
-                    <input
-                      className="deal-input"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.price}
-                      onChange={(e) => setEditLine(line.productId, { price: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <button className="btn ghost small" type="button" onClick={() => {
-                      setEdit((prev) => ({ ...prev, items: prev.items.filter((i) => i.productId !== line.productId) }))
-                    }}>{t('common.remove')}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {edit.items.map((line) => (
+            <div className="bill-item" key={line.productId}>
+              <div className="bill-item-head">
+                <b className="bill-item-name">{line.name}</b>
+                <button className="btn ghost small" type="button" onClick={() => {
+                  setEdit((prev) => ({ ...prev, items: prev.items.filter((i) => i.productId !== line.productId) }))
+                }}>{t('common.remove')}</button>
+              </div>
+              <div className="bill-item-cols">
+                <label className="bill-col">
+                  <span>{t('common.qty')}</span>
+                  <input
+                    className="deal-input"
+                    type="number"
+                    min="0"
+                    value={line.qty}
+                    onChange={(e) => setEditLine(line.productId, { qty: e.target.value })}
+                  />
+                </label>
+                <div className="bill-col">
+                  <span>{t('pos.list')}</span>
+                  <strong><Money value={line.listPrice ?? line.price} /></strong>
+                </div>
+                <label className="bill-col bill-col-deal">
+                  <span>{t('pos.deal')}</span>
+                  <input
+                    className="deal-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={line.price}
+                    onChange={(e) => setEditLine(line.productId, { price: e.target.value })}
+                  />
+                </label>
+                <div className="bill-col">
+                  <span>{t('common.line')}</span>
+                  <strong><Money value={line.qty * line.price - (line.discount || 0)} /></strong>
+                </div>
+              </div>
+            </div>
+          ))}
           <Field label={t('sales.searchAdd')} full>
             <input
               value={addQ}
