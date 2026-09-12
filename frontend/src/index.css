@@ -698,6 +698,10 @@ table.data tbody tr:hover {
   min-height: 220px;
 }
 
+.ticket .bill-item-card {
+  font-size: 12px;
+}
+
 .ticket .bill-item-card:last-child {
   margin-bottom: 0;
 }
@@ -708,7 +712,20 @@ table.data tbody tr:hover {
 }
 
 .bill-item-card .bill-item-name {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ticket .bill-item-card .bill-col span {
+  font-size: 11px;
+}
+
+.ticket .bill-item-card .bill-col strong,
+.ticket .bill-item-card .qty-row input,
+.ticket .bill-item-card .deal-input,
+.ticket .bill-item-card .qty-row button {
+  font-size: 12px;
 }
 
 .bill-item-head {
