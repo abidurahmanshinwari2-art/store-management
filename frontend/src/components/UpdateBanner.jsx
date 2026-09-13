@@ -36,6 +36,7 @@ export function UpdateBanner() {
           try {
             const done = await applyUpdate()
             setInfo(done.ok ? { ...info, available: false } : info)
+            if (done.ok) window.setTimeout(() => window.location.reload(), 1600)
           } catch {
             // stay visible
           } finally {

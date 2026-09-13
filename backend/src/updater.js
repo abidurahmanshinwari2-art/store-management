@@ -64,16 +64,22 @@ export async function checkUpdate() {
       note: githubRepo() ? 'offline' : 'no-repo',
     }
   }
-  if (!userSettings().installedId) {
-    saveUserSettings({ installedId: remote.id })
-    return { current: remote.name, latest: remote.name, available: false, url: remote.url, note: 'ok' }
-  }
+  const installed = userSettings().installedId
   return {
-    current,
+    current: installed ? current : remote.name,
     latest: remote.name,
-    available: userSettings().installedId !== remote.id,
+    available: !installed || installed !== remote.id,
     url: remote.url,
     note: 'ok',
+  }
+}
+
+function rebuildScreens() {
+  const dist = path.join(APP_ROOT, 'frontend', 'dist')
+  try {
+    fs.rmSync(dist, { recursive: true, force: true })
+  } catch {
+    // old screens folder can stay until build writes a new one
   }
 }
 
@@ -82,9 +88,6 @@ export async function applyUpdate() {
   if (!repo) return { ok: false, message: 'No GitHub repo is set.' }
   const remote = await latestGithub()
   if (!remote) return { ok: false, message: 'No internet, or GitHub is closed.' }
-  if (userSettings().installedId === remote.id) {
-    return { ok: true, already: true, message: 'This PC already has the last version.' }
-  }
 
   const work = path.join(os.tmpdir(), `store-update-${Date.now()}`)
   const zipPath = path.join(work, 'update.zip')
@@ -102,12 +105,14 @@ export async function applyUpdate() {
 
   copyTree(inner, APP_ROOT)
   saveUserSettings({ installedId: remote.id })
+  rebuildScreens()
 
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   try {
     await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'backend'), 'install'], { windowsHide: true })
     await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'install'], { windowsHide: true })
     await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'run', 'build'], { windowsHide: true })
+    fs.writeFileSync(path.join(APP_ROOT, 'frontend', 'dist', '.ui-build'), String(remote.id))
   } catch (err) {
     return {
       ok: true,
