@@ -90,3 +90,49 @@ export function monthOptionLabel(key, lang = 'en') {
   const j = shamsiSpanForMonth(key, lang)
   return j ? `${g} · ${j}` : g
 }
+
+export function startOfLocalDay(d) {
+  const dt = d instanceof Date ? new Date(d) : new Date(d)
+  dt.setHours(0, 0, 0, 0)
+  return dt
+}
+
+export function endOfLocalDay(d) {
+  const dt = startOfLocalDay(d)
+  dt.setHours(23, 59, 59, 999)
+  return dt
+}
+
+export function inDateRange(d, start, end) {
+  const t = new Date(d).getTime()
+  if (Number.isNaN(t) || !start || !end) return false
+  return t >= start.getTime() && t <= end.getTime()
+}
+
+export function reportRange(period, value) {
+  const now = new Date()
+  if (period === 'day') {
+    const start = startOfLocalDay(value || now)
+    return { start, end: endOfLocalDay(start), fileKey: `day-${start.getFullYear()}-${pad2(start.getMonth() + 1)}-${pad2(start.getDate())}` }
+  }
+  if (period === 'week') {
+    const picked = startOfLocalDay(value || now)
+    const weekday = picked.getDay()
+    const mondayOffset = weekday === 0 ? -6 : 1 - weekday
+    const start = new Date(picked)
+    start.setDate(picked.getDate() + mondayOffset)
+    const end = endOfLocalDay(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6))
+    return { start, end, fileKey: `week-${start.getFullYear()}-${pad2(start.getMonth() + 1)}-${pad2(start.getDate())}` }
+  }
+  if (period === 'year') {
+    const year = Number(value) || now.getFullYear()
+    const start = new Date(year, 0, 1, 0, 0, 0, 0)
+    const end = new Date(year, 11, 31, 23, 59, 59, 999)
+    return { start, end, fileKey: `year-${year}` }
+  }
+  const key = value || monthKeyOf(now)
+  const { year, month } = parseMonthKey(key)
+  const start = new Date(year, month - 1, 1, 0, 0, 0, 0)
+  const end = new Date(year, month, 0, 23, 59, 59, 999)
+  return { start, end, fileKey: `month-${key}` }
+}

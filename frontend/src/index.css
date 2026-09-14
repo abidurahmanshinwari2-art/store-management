@@ -1455,4 +1455,21 @@ table.data tbody tr:hover {
     top: 0;
     width: 100%;
   }
+  .receipt.report-print {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 12px;
+    font-size: 12px;
+  }
+  .report-print table {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .report-print th,
+  .report-print td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+  }
 }
