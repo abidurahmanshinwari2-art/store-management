@@ -52,3 +52,11 @@ export function fetchLicense() {
 export function activateLicense(shopName, key) {
   return request('/api/license', { method: 'POST', body: JSON.stringify({ shopName, key }) })
 }
+
+export function saveBackupOnPc() {
+  return request('/api/backup/save', { method: 'POST', body: '{}' })
+}
+
+export function restoreBackupFile(pack) {
+  return request('/api/backup/restore', { method: 'POST', body: JSON.stringify(pack) })
+}

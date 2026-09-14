@@ -18,6 +18,8 @@ export function DashboardPage() {
   const completed = db.sales.filter((s) => s.status === 'completed')
   const todaySales = completed.filter((s) => startOfDay(s.date) === today)
   const todayTotal = round2(todaySales.reduce((s, row) => s + row.total, 0))
+  const todayCogs = round2(todaySales.reduce((s, row) => s + cogsOf(row.items, db.products), 0))
+  const todayProfit = round2(todayTotal - todayCogs)
   const month = new Date().getMonth()
   const monthSales = completed.filter((s) => new Date(s.date).getMonth() === month)
   const monthTotal = round2(monthSales.reduce((s, row) => s + row.total, 0))
@@ -45,7 +47,12 @@ export function DashboardPage() {
         actions={<Link className="btn copper" to="/pos">{t('dash.openPos')}</Link>}
       />
       <div className="stats">
-        <StatCard label={t('dash.todaySales')} value={<Money value={todayTotal} />} hint={t('dash.invoices', { n: todaySales.length })} />
+        <StatCard
+          label={t('dash.todaySales')}
+          value={<Money value={todayTotal} />}
+          hint={t('dash.invoices', { n: todaySales.length })}
+          extra={tRich('dash.profit', { n: <Money value={todayProfit} /> })}
+        />
         <StatCard label={t('dash.month')} value={<Money value={monthTotal} />} hint={tRich('dash.profit', { n: <Money value={monthTotal - monthCogs} /> })} />
         <StatCard label={t('dash.receivables')} value={<Money value={receivables} />} hint={t('dash.receivablesHint')} />
         <StatCard label={t('dash.lowStock')} value={low.length} hint={t('dash.lowHint')} />

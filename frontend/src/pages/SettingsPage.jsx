@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader, Field, DataTable, Modal, Money } from '../components/Ui.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
-import { applyUpdate, fetchServerSettings, fetchUpdate } from '../utils/api.js'
+import { applyUpdate, fetchServerSettings, fetchUpdate, restoreBackupFile, saveBackupOnPc } from '../utils/api.js'
 import { FONTS, FONT_SIZE_MAX, FONT_SIZE_MIN } from '../utils/fonts.js'
 
 const THEMES = [
@@ -21,6 +21,9 @@ export function SettingsPage({ toast }) {
   const [sys, setSys] = useState({ version: '', dataPath: '', githubRepo: '' })
   const [upd, setUpd] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [backupBusy, setBackupBusy] = useState(false)
+  const [backupNote, setBackupNote] = useState('')
+  const fileRef = useRef(null)
 
   useEffect(() => {
     fetchServerSettings()
@@ -39,6 +42,55 @@ export function SettingsPage({ toast }) {
     }
     updateCompany({ ...company, taxRate: rate })
     toast(t('set.saved'))
+  }
+
+  const downloadPack = (pack, name) => {
+    const blob = new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = name || 'store-backup.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const saveBackup = async () => {
+    setBackupBusy(true)
+    try {
+      const done = await saveBackupOnPc()
+      if (done.pack) downloadPack(done.pack, done.fileName)
+      setBackupNote(done.desktop || done.savedIn || '')
+      toast(done.message || t('bak.saved'), 'ok')
+    } catch (err) {
+      toast(err.message || t('bak.failed'), 'bad')
+    } finally {
+      setBackupBusy(false)
+    }
+  }
+
+  const loadBackup = async (file) => {
+    if (!file) return
+    if (!window.confirm(t('bak.ask'))) {
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
+    setBackupBusy(true)
+    try {
+      let pack
+      try {
+        pack = JSON.parse(await file.text())
+      } catch {
+        throw new Error(t('bak.badFile'))
+      }
+      const done = await restoreBackupFile(pack)
+      toast(done.message || t('bak.loaded'), 'ok')
+      window.setTimeout(() => window.location.reload(), 800)
+    } catch (err) {
+      toast(err.message || t('bak.badFile'), 'bad')
+    } finally {
+      setBackupBusy(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
   }
 
   return (
@@ -157,6 +209,26 @@ export function SettingsPage({ toast }) {
             { key: 'actions', label: '', render: (w) => <button className="btn ghost small" type="button" onClick={() => setWh(w)}>{t('common.edit')}</button> },
           ]}
         />
+      </div>
+      <div className="card card-pad" style={{ marginTop: 14 }}>
+        <h3>{t('bak.title')}</h3>
+        <p className="muted">{t('bak.hint')}</p>
+        {backupNote ? <p className="muted" style={{ marginTop: 8 }}>{t('bak.place')}: {backupNote}</p> : null}
+        <div className="toolbar" style={{ marginTop: 12, marginBottom: 0 }}>
+          <button className="btn copper" type="button" disabled={backupBusy} onClick={saveBackup}>
+            {backupBusy ? t('bak.working') : t('bak.save')}
+          </button>
+          <button className="btn ghost" type="button" disabled={backupBusy} onClick={() => fileRef.current?.click()}>
+            {t('bak.load')}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => loadBackup(e.target.files?.[0])}
+          />
+        </div>
       </div>
       <div className="card card-pad" style={{ marginTop: 14 }}>
         <h3>{t('set.system')}</h3>

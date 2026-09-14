@@ -25,12 +25,21 @@ export function PageHeader({ title, subtitle, actions }) {
   )
 }
 
-export function StatCard({ label, value, hint }) {
+export function StatCard({ label, value, hint, extra }) {
   return (
     <div className="stat-card">
       <span>{label}</span>
       <strong>{value}</strong>
-      {hint ? <em>{hint}</em> : null}
+      {hint && extra ? (
+        <div className="stat-card-foot">
+          <em>{hint}</em>
+          <em>{extra}</em>
+        </div>
+      ) : hint ? (
+        <em>{hint}</em>
+      ) : extra ? (
+        <em className="stat-card-extra">{extra}</em>
+      ) : null}
     </div>
   )
 }

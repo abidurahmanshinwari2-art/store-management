@@ -12,6 +12,7 @@ import {
   saveUserSettings,
   userSettings,
 } from './paths.js'
+import { restoreBackup, saveBackupToComputer } from './backup.js'
 import { loadStoreFile, saveStoreFile } from './storeFile.js'
 
 const config = appConfig()
@@ -102,6 +103,22 @@ app.post('/api/update/apply', async (req, res) => {
     res.json(await applyUpdate())
   } catch (err) {
     res.status(500).json({ ok: false, message: err.message || 'Update failed.' })
+  }
+})
+
+app.post('/api/backup/save', (_req, res) => {
+  try {
+    res.json(saveBackupToComputer())
+  } catch (err) {
+    res.status(400).json({ ok: false, message: err.message || 'Could not save the backup.' })
+  }
+})
+
+app.post('/api/backup/restore', (req, res) => {
+  try {
+    res.json(restoreBackup(req.body))
+  } catch (err) {
+    res.status(400).json({ ok: false, message: err.message || 'Could not load the backup.' })
   }
 })
 
