@@ -31,7 +31,7 @@ export function CustomerLoansPage({ toast }) {
   const foundDue = found ? round2(found.total - found.paid) : 0
 
   const startBill = (customerId) => {
-    setBill({ customerId, number: '' })
+    setBill({ customerId, number: '', mode: 'due', amount: '' })
   }
 
   const startPay = (customerId) => {
@@ -47,7 +47,8 @@ export function CustomerLoansPage({ toast }) {
 
   const saveBill = () => {
     try {
-      const result = attachBillByNumber(bill.number, bill.customerId)
+      const loanAmount = bill.mode === 'fixed' ? bill.amount : undefined
+      const result = attachBillByNumber(bill.number, bill.customerId, loanAmount)
       setOpenId(bill.customerId)
       setBill(null)
       toast(result.already ? t('loan.alreadyOnLoan') : t('loan.attached'))
@@ -56,8 +57,11 @@ export function CustomerLoansPage({ toast }) {
         'Write a bill number.': t('loan.needNumber'),
         'Bill not found.': t('loan.notFound'),
         'This bill cannot go on loan.': t('loan.badBill'),
-        'This bill is already paid.': t('loan.alreadyPaid'),
+        'This bill is already paid.': t('loan.needFixed'),
         'Credit sales need a named customer.': t('pos.needCustomer'),
+        'Write a money amount.': t('loan.needAmount'),
+        'That is more than the bill total.': t('loan.overBill'),
+        'This bill is partly paid. You cannot add the whole bill.': t('loan.noWhole'),
       }
       toast(map[err.message] || err.message, 'bad')
     }
@@ -192,23 +196,45 @@ export function CustomerLoansPage({ toast }) {
                 onChange={(e) => setBill({ ...bill, number: e.target.value })}
               />
             </Field>
+            <Field label={t('loan.howMuch')}>
+              <select value={bill.mode} onChange={(e) => setBill({ ...bill, mode: e.target.value, amount: e.target.value === 'due' ? '' : bill.amount })}>
+                <option value="due">{t('loan.useDue')}</option>
+                <option value="fixed">{t('loan.useFixed')}</option>
+              </select>
+            </Field>
+            {bill.mode === 'fixed' ? (
+              <Field label={t('loan.loanAmount')}>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={bill.amount}
+                  onChange={(e) => setBill({ ...bill, amount: e.target.value })}
+                />
+              </Field>
+            ) : null}
           </div>
           {found ? (
             <p style={{ marginTop: 12 }}>
               {found.number} · {t('common.total')} <Money value={found.total} /> · {t('common.paid')} <Money value={found.paid} /> · {t('loan.due')} <Money value={foundDue} />
-              {foundDue <= 0 ? (
-                <span className="muted"> · {t('loan.alreadyPaid')}</span>
-              ) : found.customerId === bill.customerId ? (
+              {found.paid > 0 ? (
+                <span className="muted"> · {t('loan.partPaid')}</span>
+              ) : bill.mode === 'due' && found.customerId === bill.customerId ? (
                 <span className="muted"> · {t('loan.alreadyOnLoan')}</span>
-              ) : (
+              ) : bill.mode === 'due' ? (
                 <span className="muted"> · {t('loan.willAdd')}</span>
-              )}
+              ) : null}
             </p>
           ) : bill.number.trim() ? (
             <p className="muted" style={{ marginTop: 12 }}>{t('loan.notFound')}</p>
           ) : (
             <p className="muted" style={{ marginTop: 12 }}>{t('loan.numberHint')}</p>
           )}
+          {bill.mode === 'fixed' ? (
+            <p className="muted" style={{ marginTop: 8 }}>{t('loan.fixedHint')}</p>
+          ) : found && foundDue <= 0 ? (
+            <p className="muted" style={{ marginTop: 8 }}>{t('loan.needFixed')}</p>
+          ) : null}
         </Modal>
       ) : null}
 

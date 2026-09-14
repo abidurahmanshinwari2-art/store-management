@@ -579,9 +579,10 @@ export function StoreProvider({ children }) {
     return record
   }
 
-  const attachBillByNumber = (number, customerId) => {
+  const attachBillByNumber = (number, customerId, loanAmount) => {
     const code = String(number || '').trim().toLowerCase()
     if (!code) throw new Error('Write a bill number.')
+    const hasFixed = loanAmount !== undefined && loanAmount !== null && String(loanAmount).trim() !== ''
     let result
     let error
     setDb((prev) => {
@@ -590,27 +591,55 @@ export function StoreProvider({ children }) {
         const sale = next.sales.find((s) => String(s.number).trim().toLowerCase() === code)
         if (!sale) throw new Error('Bill not found.')
         if (sale.status !== 'completed') throw new Error('This bill cannot go on loan.')
-        const due = round2(sale.total - sale.paid)
-        if (due <= 0) throw new Error('This bill is already paid.')
+        const oldDue = round2(sale.total - sale.paid)
         const customer = next.customers.find((c) => c.id === customerId)
         if (!customer || customer.isWalkIn) throw new Error('Credit sales need a named customer.')
-        if (sale.loaned && sale.customerId === customerId) {
-          result = { sale, added: 0, already: true }
-          return next
+
+        let amount
+        if (hasFixed) {
+          amount = round2(loanAmount)
+          if (amount <= 0) throw new Error('Write a money amount.')
+          if (amount > sale.total + 0.001) throw new Error('That is more than the bill total.')
+          if (sale.paid > 0 && amount >= sale.total - 0.001) {
+            throw new Error('This bill is partly paid. You cannot add the whole bill.')
+          }
+        } else {
+          if (oldDue <= 0) throw new Error('This bill is already paid.')
+          amount = oldDue
         }
-        if (sale.customerId === customerId) {
+
+        const sameCustomer = sale.customerId === customerId
+        if (!hasFixed && sameCustomer) {
           sale.loaned = true
           result = { sale, added: 0, already: true }
           return next
         }
+
+        const newPaid = round2(sale.total - amount)
+        const deltaDue = round2(amount - oldDue)
+
+        if (sameCustomer) {
+          if (Math.abs(deltaDue) < 0.001) {
+            sale.loaned = true
+            result = { sale, added: 0, already: true }
+            return next
+          }
+          customer.balance = round2(Math.max(0, customer.balance + deltaDue))
+          sale.paid = newPaid
+          sale.loaned = true
+          result = { sale, added: deltaDue, already: false }
+          return next
+        }
+
         const old = next.customers.find((c) => c.id === sale.customerId)
         if (old && !old.isWalkIn) {
-          old.balance = round2(Math.max(0, old.balance - due))
+          old.balance = round2(Math.max(0, old.balance - oldDue))
         }
         sale.customerId = customerId
+        sale.paid = newPaid
         sale.loaned = true
-        customer.balance = round2(customer.balance + due)
-        result = { sale, added: due, already: false }
+        customer.balance = round2(customer.balance + amount)
+        result = { sale, added: amount, already: false }
         return next
       } catch (err) {
         error = err
