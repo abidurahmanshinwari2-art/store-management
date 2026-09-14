@@ -15,28 +15,17 @@ function ghHeaders() {
 async function latestGithub() {
   const repo = githubRepo()
   if (!repo) return null
-  const releaseRes = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: ghHeaders() })
-  if (releaseRes.ok) {
-    const release = await releaseRes.json()
-    const tag = String(release.tag_name || '').replace(/^v/, '')
-    const zip = release.zipball_url || `https://github.com/${repo}/archive/refs/tags/${release.tag_name}.zip`
-    return {
-      kind: 'release',
-      id: tag || release.target_commitish,
-      name: tag || release.name,
-      zip,
-      url: release.html_url,
-    }
-  }
   const commitRes = await fetch(`https://api.github.com/repos/${repo}/commits/main`, { headers: ghHeaders() })
   if (!commitRes.ok) return null
   const commit = await commitRes.json()
-  const sha = commit.sha
+  const sha = String(commit.sha || '')
+  if (!sha) return null
   return {
     kind: 'commit',
     id: sha,
-    name: String(sha).slice(0, 7),
-    zip: `https://github.com/${repo}/archive/${sha}.zip`,
+    name: sha.slice(0, 7),
+    zip: `https://github.com/${repo}/archive/refs/heads/main.zip`,
+    zipSha: `https://github.com/${repo}/archive/${sha}.zip`,
     url: `https://github.com/${repo}`,
   }
 }
@@ -50,6 +39,25 @@ function copyTree(from, to) {
     if (fs.statSync(src).isDirectory()) copyTree(src, dest)
     else fs.copyFileSync(src, dest)
   }
+}
+
+async function downloadZip(urls, zipPath) {
+  let last = 'Could not download the update.'
+  for (const url of urls) {
+    if (!url) continue
+    try {
+      const zipRes = await fetch(url, { headers: { 'User-Agent': 'HasanShinwariStore' }, redirect: 'follow' })
+      if (!zipRes.ok) {
+        last = `Could not download the update (${zipRes.status}).`
+        continue
+      }
+      fs.writeFileSync(zipPath, Buffer.from(await zipRes.arrayBuffer()))
+      if (fs.statSync(zipPath).size > 1000) return true
+    } catch (err) {
+      last = String(err.message || last)
+    }
+  }
+  throw new Error(last)
 }
 
 export async function checkUpdate() {
@@ -66,7 +74,7 @@ export async function checkUpdate() {
   }
   const installed = userSettings().installedId
   return {
-    current: installed ? current : remote.name,
+    current: installed ? String(installed).slice(0, 7) : remote.name,
     latest: remote.name,
     available: !installed || installed !== remote.id,
     url: remote.url,
@@ -84,9 +92,15 @@ export async function applyUpdate() {
   const zipPath = path.join(work, 'update.zip')
   fs.mkdirSync(work, { recursive: true })
 
-  const zipRes = await fetch(remote.zip, { headers: { 'User-Agent': 'HasanShinwariStore' } })
-  if (!zipRes.ok) return { ok: false, message: 'Could not download the update.' }
-  fs.writeFileSync(zipPath, Buffer.from(await zipRes.arrayBuffer()))
+  try {
+    await downloadZip([
+      remote.zip,
+      `https://codeload.github.com/${repo}/zip/refs/heads/main`,
+      remote.zipSha,
+    ], zipPath)
+  } catch (err) {
+    return { ok: false, message: err.message || 'Could not download the update.' }
+  }
 
   const unpacked = path.join(work, 'unpacked')
   fs.mkdirSync(unpacked, { recursive: true })
@@ -95,9 +109,15 @@ export async function applyUpdate() {
   if (!inner) return { ok: false, message: 'The download was empty.' }
 
   copyTree(inner, APP_ROOT)
-  saveUserSettings({ installedId: remote.id })
 
   const distDir = path.join(APP_ROOT, 'frontend', 'dist')
+  const stamp = path.join(distDir, '.ui-build')
+  try {
+    if (fs.existsSync(stamp)) fs.unlinkSync(stamp)
+  } catch {
+    // start-store.bat will still rebuild if the stamp does not match
+  }
+
   const distBackup = path.join(work, 'dist-backup')
   if (fs.existsSync(distDir)) {
     fs.cpSync(distDir, distBackup, { recursive: true })
@@ -105,10 +125,12 @@ export async function applyUpdate() {
 
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   try {
-    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'backend'), 'install'], { windowsHide: true })
-    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'install'], { windowsHide: true })
-    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'run', 'build'], { windowsHide: true })
-    fs.writeFileSync(path.join(distDir, '.ui-build'), String(remote.id))
+    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'backend'), 'install'], { windowsHide: true, maxBuffer: 20 * 1024 * 1024 })
+    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'install'], { windowsHide: true, maxBuffer: 20 * 1024 * 1024 })
+    await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'run', 'build'], { windowsHide: true, maxBuffer: 20 * 1024 * 1024 })
+    fs.mkdirSync(distDir, { recursive: true })
+    fs.writeFileSync(stamp, String(remote.id))
+    saveUserSettings({ installedId: remote.id })
   } catch (err) {
     if (fs.existsSync(distBackup)) {
       try {
@@ -118,6 +140,7 @@ export async function applyUpdate() {
         // start-store.bat will rebuild screens
       }
     }
+    saveUserSettings({ installedId: remote.id })
     return {
       ok: false,
       restart: true,
