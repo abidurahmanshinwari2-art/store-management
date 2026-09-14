@@ -1,5 +1,6 @@
 {
   "version": "1.0.0",
   "port": 3847,
-  "githubRepo": "abidurahmanshinwari2-art/store-management"
+  "githubRepo": "abidurahmanshinwari2-art/store-management",
+  "licenseSecret": "hsgs-shop-key-v1-n4k8q2w7"
 }

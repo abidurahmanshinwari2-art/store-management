@@ -44,3 +44,11 @@ export function fetchUpdate() {
 export function applyUpdate() {
   return request('/api/update/apply', { method: 'POST', body: '{}' })
 }
+
+export function fetchLicense() {
+  return request('/api/license')
+}
+
+export function activateLicense(shopName, key) {
+  return request('/api/license', { method: 'POST', body: JSON.stringify({ shopName, key }) })
+}

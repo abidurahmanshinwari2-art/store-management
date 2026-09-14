@@ -2,6 +2,7 @@ import cors from 'cors'
 import express from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
+import { activateLicense, licenseStatus } from './license.js'
 import { applyUpdate, checkUpdate } from './updater.js'
 import {
   DATA_DIR,
@@ -26,7 +27,30 @@ app.get('/api/health', (_req, res) => {
     offline: true,
     dataPath: DATA_DIR,
     githubRepo: githubRepo(),
+    licensed: licenseStatus().licensed,
   })
+})
+
+app.get('/api/license', (_req, res) => {
+  res.json(licenseStatus())
+})
+
+app.post('/api/license', (req, res) => {
+  try {
+    res.json(activateLicense(req.body?.shopName, req.body?.key))
+  } catch (err) {
+    res.status(400).json({ error: 'license', message: err.message || 'Shop name or license key is wrong.' })
+  }
+})
+
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api')) return next()
+  const open = req.path === '/api/health' || req.path === '/api/license' || req.path === '/api/update' || req.path === '/api/update/apply'
+  if (open) return next()
+  if (!licenseStatus().licensed) {
+    return res.status(403).json({ error: 'license', message: 'Enter a shop license key first.' })
+  }
+  next()
 })
 
 app.get('/api/store', (_req, res) => {
@@ -42,7 +66,14 @@ app.put('/api/store', (req, res) => {
 })
 
 app.get('/api/settings', (_req, res) => {
-  res.json({ ...userSettings(), version: config.version, dataPath: DATA_DIR, githubRepo: githubRepo() })
+  const { licenseKey, ...safe } = userSettings()
+  res.json({
+    ...safe,
+    version: config.version,
+    dataPath: DATA_DIR,
+    githubRepo: githubRepo(),
+    ...licenseStatus(),
+  })
 })
 
 app.put('/api/settings', (req, res) => {

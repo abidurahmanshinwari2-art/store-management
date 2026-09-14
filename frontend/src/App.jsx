@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { StoreProvider, useStore } from './context/StoreContext.jsx'
@@ -11,6 +11,7 @@ import { CustomersPage, SuppliersPage } from './pages/PartiesPage.jsx'
 import { DashboardPage } from './pages/DashboardPage.jsx'
 import { ExpensesPage } from './pages/ExpensesPage.jsx'
 import { InventoryPage } from './pages/InventoryPage.jsx'
+import { LicensePage } from './pages/LicensePage.jsx'
 import { LoginPage } from './pages/LoginPage.jsx'
 import { PaymentsPage } from './pages/PaymentsPage.jsx'
 import { POSPage } from './pages/POSPage.jsx'
@@ -21,6 +22,24 @@ import { SalesPage } from './pages/SalesPage.jsx'
 import { SettingsPage } from './pages/SettingsPage.jsx'
 import { UsersPage } from './pages/UsersPage.jsx'
 import { uid } from './utils/id.js'
+import { fetchLicense } from './utils/api.js'
+
+function LicenseGate({ children }) {
+  const { t } = useUi()
+  const [info, setInfo] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetchLicense()
+      .then(setInfo)
+      .catch(() => setError('license'))
+  }, [])
+
+  if (error) return <LicensePage onDone={setInfo} />
+  if (!info) return <div className="empty">{t('app.opening')}</div>
+  if (!info.licensed) return <LicensePage onDone={setInfo} />
+  return children
+}
 
 function Boot({ children }) {
   const { ready } = useStore()
@@ -60,6 +79,7 @@ export default function App() {
 
   return (
     <UiProvider>
+    <LicenseGate>
     <StoreProvider>
       <Boot>
       <AuthBridge>
@@ -95,6 +115,7 @@ export default function App() {
       </AuthBridge>
       </Boot>
     </StoreProvider>
+    </LicenseGate>
     </UiProvider>
   )
 }
