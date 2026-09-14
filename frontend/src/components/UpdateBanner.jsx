@@ -6,6 +6,7 @@ export function UpdateBanner() {
   const { t } = useUi()
   const [info, setInfo] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
 
   useEffect(() => {
     let live = true
@@ -22,11 +23,12 @@ export function UpdateBanner() {
     }
   }, [])
 
-  if (!info?.available) return null
+  if (!info?.available && !note) return null
 
   return (
     <div className="update-banner">
-      <span>{t('upd.available', { n: info.latest })}</span>
+      <span>{note || t('upd.available', { n: info?.latest })}</span>
+      {!note ? (
       <button
         className="btn copper small"
         type="button"
@@ -35,10 +37,10 @@ export function UpdateBanner() {
           setBusy(true)
           try {
             const done = await applyUpdate()
+            setNote(done.message || (done.ok ? t('upd.done') : t('upd.failed')))
             setInfo(done.ok ? { ...info, available: false } : info)
-            if (done.ok) window.setTimeout(() => window.location.reload(), 1600)
           } catch {
-            // stay visible
+            setNote(t('upd.failed'))
           } finally {
             setBusy(false)
           }
@@ -46,6 +48,7 @@ export function UpdateBanner() {
       >
         {busy ? t('upd.working') : t('upd.button')}
       </button>
+      ) : null}
     </div>
   )
 }

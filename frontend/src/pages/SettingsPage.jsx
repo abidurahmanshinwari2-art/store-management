@@ -182,9 +182,6 @@ export function SettingsPage({ toast }) {
               toast(t('upd.working'))
               const done = await applyUpdate()
               toast(done.ok ? (done.message || t('upd.done')) : (done.message || t('upd.failed')), done.ok ? 'ok' : 'bad')
-              if (done.ok) {
-                window.setTimeout(() => window.location.reload(), 1600)
-              }
             } catch {
               toast(t('upd.offline'), 'bad')
             } finally {

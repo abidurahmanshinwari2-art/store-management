@@ -116,7 +116,21 @@ if (fs.existsSync(FRONTEND_DIST)) {
   app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith('/api')) return next()
     res.setHeader('Cache-Control', 'no-store')
-    res.sendFile(path.join(FRONTEND_DIST, 'index.html'))
+    const indexFile = path.join(FRONTEND_DIST, 'index.html')
+    if (!fs.existsSync(indexFile)) {
+      res.status(503).type('html').send(
+        '<p>Store screens are not ready. Close this window, then open <b>General Store Management system</b> again.</p>',
+      )
+      return
+    }
+    res.sendFile(indexFile)
+  })
+} else {
+  app.get(/.*/, (req, res, next) => {
+    if (req.path.startsWith('/api')) return next()
+    res.status(503).type('html').send(
+      '<p>Store screens are not ready. Close this window, then open <b>General Store Management system</b> again.</p>',
+    )
   })
 }
 

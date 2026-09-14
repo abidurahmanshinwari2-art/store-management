@@ -74,15 +74,6 @@ export async function checkUpdate() {
   }
 }
 
-function rebuildScreens() {
-  const dist = path.join(APP_ROOT, 'frontend', 'dist')
-  try {
-    fs.rmSync(dist, { recursive: true, force: true })
-  } catch {
-    // old screens folder can stay until build writes a new one
-  }
-}
-
 export async function applyUpdate() {
   const repo = githubRepo()
   if (!repo) return { ok: false, message: 'No GitHub repo is set.' }
@@ -105,19 +96,32 @@ export async function applyUpdate() {
 
   copyTree(inner, APP_ROOT)
   saveUserSettings({ installedId: remote.id })
-  rebuildScreens()
+
+  const distDir = path.join(APP_ROOT, 'frontend', 'dist')
+  const distBackup = path.join(work, 'dist-backup')
+  if (fs.existsSync(distDir)) {
+    fs.cpSync(distDir, distBackup, { recursive: true })
+  }
 
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
   try {
     await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'backend'), 'install'], { windowsHide: true })
     await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'install'], { windowsHide: true })
     await execFileAsync(npm, ['--prefix', path.join(APP_ROOT, 'frontend'), 'run', 'build'], { windowsHide: true })
-    fs.writeFileSync(path.join(APP_ROOT, 'frontend', 'dist', '.ui-build'), String(remote.id))
+    fs.writeFileSync(path.join(distDir, '.ui-build'), String(remote.id))
   } catch (err) {
+    if (fs.existsSync(distBackup)) {
+      try {
+        fs.rmSync(distDir, { recursive: true, force: true })
+        fs.cpSync(distBackup, distDir, { recursive: true })
+      } catch {
+        // start-store.bat will rebuild screens
+      }
+    }
     return {
-      ok: true,
+      ok: false,
       restart: true,
-      message: 'Files are downloaded. Close the store and run start-store.bat again.',
+      message: 'Update files are here, but the screens did not build. Close the store and open General Store Management system again.',
       detail: String(err.message || ''),
     }
   }
@@ -131,6 +135,6 @@ export async function applyUpdate() {
   return {
     ok: true,
     restart: true,
-    message: 'Update is installed. Close the store and run start-store.bat again. Shop data on this PC is safe.',
+    message: 'Update is installed. Close the store and open General Store Management system again. Shop data on this PC is safe.',
   }
 }
