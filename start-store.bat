@@ -25,7 +25,7 @@ if not exist "frontend\node_modules" (
   call npm --prefix frontend install
 )
 
-set UI_BUILD=2026-09-15-profit-backup
+set UI_BUILD=2026-09-15-sidebar-hide-bar
 set NEED_BUILD=0
 if not exist "frontend\dist\index.html" set NEED_BUILD=1
 if not exist "frontend\dist\.ui-build" set NEED_BUILD=1
