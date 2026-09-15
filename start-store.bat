@@ -25,7 +25,7 @@ if not exist "frontend\node_modules" (
   call npm --prefix frontend install
 )
 
-set UI_BUILD=2026-09-15-always-main-update
+set UI_BUILD=2026-09-15-license-prompt
 set NEED_BUILD=0
 if not exist "frontend\dist\index.html" set NEED_BUILD=1
 if not exist "frontend\dist\.ui-build" set NEED_BUILD=1
@@ -37,6 +37,23 @@ if not "!GOT!"=="%UI_BUILD%" set NEED_BUILD=1
 if "%NEED_BUILD%"=="1" (
   echo Building store screens...
   call npm --prefix frontend run build
+  if not exist "frontend\dist\index.html" (
+    echo.
+    echo Store screens did not build. Close this window, then open General Store Management system again.
+    pause
+    exit /b 1
+  )
+  >frontend\dist\.ui-build echo %UI_BUILD%
+)
+
+if not exist "frontend\dist\index.html" (
+  echo Building store screens...
+  call npm --prefix frontend run build
+  if not exist "frontend\dist\index.html" (
+    echo Store screens did not build. Close this window, then open General Store Management system again.
+    pause
+    exit /b 1
+  )
   >frontend\dist\.ui-build echo %UI_BUILD%
 )
 

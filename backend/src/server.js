@@ -140,7 +140,14 @@ if (fs.existsSync(FRONTEND_DIST)) {
       )
       return
     }
-    res.sendFile(indexFile)
+    res.sendFile(indexFile, (err) => {
+      if (!err) return
+      if (!res.headersSent) {
+        res.status(503).type('html').send(
+          '<p>Store screens are not ready. Close this window, then open <b>General Store Management system</b> again.</p>',
+        )
+      }
+    })
   })
 } else {
   app.get(/.*/, (req, res, next) => {

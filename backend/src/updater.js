@@ -119,7 +119,7 @@ export async function applyUpdate() {
   }
 
   const distBackup = path.join(work, 'dist-backup')
-  if (fs.existsSync(distDir)) {
+  if (fs.existsSync(path.join(distDir, 'index.html'))) {
     fs.cpSync(distDir, distBackup, { recursive: true })
   }
 
