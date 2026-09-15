@@ -5,6 +5,7 @@ import path from 'node:path'
 import { activateLicense, licenseStatus } from './license.js'
 import { applyUpdate, checkUpdate } from './updater.js'
 import {
+  APP_ROOT,
   DATA_DIR,
   FRONTEND_DIST,
   appConfig,
@@ -27,6 +28,7 @@ app.get('/api/health', (_req, res) => {
     version: config.version,
     offline: true,
     dataPath: DATA_DIR,
+    appPath: APP_ROOT,
     githubRepo: githubRepo(),
     licensed: licenseStatus().licensed,
   })
@@ -72,6 +74,7 @@ app.get('/api/settings', (_req, res) => {
     ...safe,
     version: config.version,
     dataPath: DATA_DIR,
+    appPath: APP_ROOT,
     githubRepo: githubRepo(),
     ...licenseStatus(),
   })
@@ -79,7 +82,7 @@ app.get('/api/settings', (_req, res) => {
 
 app.put('/api/settings', (req, res) => {
   const github = String(req.body?.githubRepo || '').trim()
-  res.json({ ...saveUserSettings({ githubRepo: github }), version: config.version, dataPath: DATA_DIR })
+  res.json({ ...saveUserSettings({ githubRepo: github }), version: config.version, dataPath: DATA_DIR, appPath: APP_ROOT })
 })
 
 app.get('/api/update', async (_req, res) => {

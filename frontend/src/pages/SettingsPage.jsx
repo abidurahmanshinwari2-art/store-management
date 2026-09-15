@@ -18,12 +18,16 @@ export function SettingsPage({ toast }) {
   const { t, theme, setTheme, font, setFont, textSize, setTextSize } = useUi()
   const [company, setCompany] = useState(db.company)
   const [wh, setWh] = useState(null)
-  const [sys, setSys] = useState({ version: '', dataPath: '', githubRepo: '' })
+  const [sys, setSys] = useState({ version: '', dataPath: '', appPath: '', githubRepo: '' })
   const [upd, setUpd] = useState(null)
   const [busy, setBusy] = useState(false)
   const [backupBusy, setBackupBusy] = useState(false)
   const [backupNote, setBackupNote] = useState('')
   const fileRef = useRef(null)
+
+  useEffect(() => {
+    setCompany(db.company)
+  }, [db.company])
 
   useEffect(() => {
     fetchServerSettings()
@@ -235,8 +239,8 @@ export function SettingsPage({ toast }) {
         <p className="muted">{t('set.systemHint')}</p>
         <div className="form-grid" style={{ marginTop: 12 }}>
           <Field label={t('set.version')}><input value={upd?.latest ? `${sys.version || ''} / ${upd.latest}` : (sys.version || '')} readOnly /></Field>
-          <Field label={t('lic.shop')}><input value={sys.shopName || ''} readOnly /></Field>
-          <Field label={t('set.dataPlace')} full><input value={sys.dataPath || ''} readOnly /></Field>
+          <Field label={t('lic.shop')}><input value={company.name || sys.shopName || ''} readOnly /></Field>
+          <Field label={t('set.dataPlace')} full><input value={sys.appPath || sys.dataPath || ''} readOnly /></Field>
         </div>
         <p className="muted" style={{ marginTop: 10 }}>
           {busy ? t('upd.working') : upd?.available ? t('upd.available', { n: upd.latest }) : t('upd.hint')}

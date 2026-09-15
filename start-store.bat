@@ -25,7 +25,7 @@ if not exist "frontend\node_modules" (
   call npm --prefix frontend install
 )
 
-set UI_BUILD=2026-09-15-license-prompt
+set UI_BUILD=2026-09-15-shop-folder
 set NEED_BUILD=0
 if not exist "frontend\dist\index.html" set NEED_BUILD=1
 if not exist "frontend\dist\.ui-build" set NEED_BUILD=1
@@ -59,7 +59,7 @@ if not exist "frontend\dist\index.html" (
 
 echo.
 echo App folder: %~dp0
-echo Shop data: %~d0\HasanShinwariStore
+echo Shop data: %~dp0shop-data
 echo Opening http://localhost:3847
 start "" cmd /c "timeout /t 3 /nobreak >nul & start http://localhost:3847"
 node backend\src\server.js

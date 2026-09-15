@@ -6,7 +6,7 @@ import { promisify } from 'node:util'
 import { APP_ROOT, appConfig, githubRepo, saveUserSettings, userSettings } from './paths.js'
 
 const execFileAsync = promisify(execFile)
-const SKIP = new Set(['node_modules', '.git', 'dist'])
+const SKIP = new Set(['node_modules', '.git', 'dist', 'shop-data'])
 
 function ghHeaders() {
   return { Accept: 'application/vnd.github+json', 'User-Agent': 'HasanShinwariStore' }

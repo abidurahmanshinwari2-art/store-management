@@ -40,7 +40,7 @@ if not defined INNER (
 )
 
 echo Copying new files. Shop data on this PC is not changed.
-robocopy "%INNER%" "%~dp0." /E /XD node_modules .git dist /NFL /NDL /NJH /NJS /nc /ns /np >nul
+robocopy "%INNER%" "%~dp0." /E /XD node_modules .git dist shop-data /NFL /NDL /NJH /NJS /nc /ns /np >nul
 if exist "frontend\dist\.ui-build" del /q "frontend\dist\.ui-build" >nul 2>nul
 
 if not exist "backend\node_modules" call npm --prefix backend install

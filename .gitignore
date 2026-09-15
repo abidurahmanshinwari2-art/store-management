@@ -1,6 +1,7 @@
 node_modules/
 frontend/dist/
 backend/data/
+shop-data/
 *.tmp
 .DS_Store
 Thumbs.db

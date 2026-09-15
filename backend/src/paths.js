@@ -9,32 +9,33 @@ export const APP_ROOT = path.resolve(here, '..', '..')
 export const BACKEND_ROOT = path.resolve(here, '..')
 export const FRONTEND_DIST = path.join(APP_ROOT, 'frontend', 'dist')
 
-function resolveUserDir() {
-  const driveRoot = path.parse(APP_ROOT).root
-  const onDrive = path.join(driveRoot, 'HasanShinwariStore')
-  if (path.resolve(APP_ROOT) === path.resolve(onDrive)) {
-    return path.join(driveRoot, 'HasanShinwariStoreData')
-  }
-  return onDrive
-}
-
 function copyIfMissing(from, to) {
   if (!fs.existsSync(from) || fs.existsSync(to)) return
   fs.mkdirSync(path.dirname(to), { recursive: true })
   fs.copyFileSync(from, to)
 }
 
-function migrateHomeData(userDir) {
-  const oldDir = path.join(os.homedir(), 'HasanShinwariStore')
-  if (!fs.existsSync(oldDir) || path.resolve(oldDir) === path.resolve(userDir)) return
-  fs.mkdirSync(path.join(userDir, 'data'), { recursive: true })
-  copyIfMissing(path.join(oldDir, 'settings.json'), path.join(userDir, 'settings.json'))
-  copyIfMissing(path.join(oldDir, 'data', 'store.json'), path.join(userDir, 'data', 'store.json'))
-  copyIfMissing(path.join(oldDir, 'data', 'store.bak'), path.join(userDir, 'data', 'store.bak'))
+function copyShopFiles(from, to) {
+  if (!fs.existsSync(from) || path.resolve(from) === path.resolve(to)) return
+  fs.mkdirSync(path.join(to, 'data'), { recursive: true })
+  copyIfMissing(path.join(from, 'settings.json'), path.join(to, 'settings.json'))
+  copyIfMissing(path.join(from, 'data', 'store.json'), path.join(to, 'data', 'store.json'))
+  copyIfMissing(path.join(from, 'data', 'store.bak'), path.join(to, 'data', 'store.bak'))
+}
+
+function resolveUserDir() {
+  const local = path.join(APP_ROOT, 'shop-data')
+  const hasLocal = fs.existsSync(path.join(local, 'settings.json')) || fs.existsSync(path.join(local, 'data', 'store.json'))
+  if (!hasLocal) {
+    const driveRoot = path.parse(APP_ROOT).root
+    copyShopFiles(path.join(driveRoot, 'HasanShinwariStore'), local)
+    copyShopFiles(path.join(driveRoot, 'HasanShinwariStoreData'), local)
+    copyShopFiles(path.join(os.homedir(), 'HasanShinwariStore'), local)
+  }
+  return local
 }
 
 export const USER_DIR = resolveUserDir()
-migrateHomeData(USER_DIR)
 
 export const DATA_DIR = path.join(USER_DIR, 'data')
 export const STORE_FILE = path.join(DATA_DIR, 'store.json')
