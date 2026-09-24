@@ -1400,6 +1400,38 @@ table.data tbody tr:hover {
   gap: 12px;
 }
 
+.unit-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.unit-card {
+  text-align: start;
+  border: 2px solid var(--line);
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.unit-card.active {
+  border-color: var(--copper);
+  box-shadow: 0 0 0 3px var(--copper-soft);
+}
+
+.unit-card b {
+  display: block;
+}
+
+.unit-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
 .theme-card {
   text-align: start;
   border: 2px solid var(--line);

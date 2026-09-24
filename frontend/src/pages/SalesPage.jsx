@@ -3,7 +3,8 @@ import { PageHeader, DataTable, Badge, Modal, Field, Money } from '../components
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
-import { docTotals, saleCompromise } from '../lib/calc.js'
+import { docTotals, lineGoods, saleCompromise } from '../lib/calc.js'
+import { priceBase, qtyUnit } from '../lib/units.js'
 import { dateFmt } from '../utils/format.js'
 
 function saleStatus(sale, t) {
@@ -68,6 +69,7 @@ export function SalesPage({ toast }) {
         productId: product.id,
         name: product.name,
         qty: 1,
+        unit: product.unit || 'pcs',
         listPrice: product.sellPrice,
         price: product.sellPrice,
         discount: 0,
@@ -163,8 +165,8 @@ export function SalesPage({ toast }) {
               <b className="bill-item-name">{line.name}</b>
               <div className="bill-item-cols">
                 <div className="bill-col">
-                  <span>{t('common.qty')}</span>
-                  <strong>{line.qty}</strong>
+                  <span>{t('pos.qtyIn', { u: qtyUnit(line.unit) })}</span>
+                  <strong>{line.qty} {qtyUnit(line.unit)}</strong>
                 </div>
                 <div className="bill-col">
                   <span>{t('pos.list')}</span>
@@ -215,7 +217,7 @@ export function SalesPage({ toast }) {
               </div>
               <div className="bill-item-cols">
                 <label className="bill-col">
-                  <span>{t('common.qty')}</span>
+                  <span>{t('pos.qtyIn', { u: qtyUnit(line.unit) })}</span>
                   <input
                     className="deal-input"
                     type="number"
@@ -241,7 +243,7 @@ export function SalesPage({ toast }) {
                 </label>
                 <div className="bill-col">
                   <span>{t('common.line')}</span>
-                  <strong><Money value={line.qty * line.price - (line.discount || 0)} /></strong>
+                    <strong><Money value={lineGoods(line)} /></strong>
                 </div>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { BarcodeCamera } from '../components/BarcodeCamera.jsx'
 import { PageHeader, DataTable, Badge, Modal, Field, Money } from '../components/Ui.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
+import { PRODUCT_UNITS, priceBase, qtyUnit, savedUnit } from '../lib/units.js'
 import { qtyFmt } from '../utils/format.js'
 
 const emptyProduct = {
@@ -57,9 +58,15 @@ export function ProductsPage({ toast }) {
             { key: 'sku', label: t('products.sku') },
             { key: 'barcode', label: t('products.barcode'), render: (p) => p.barcode || '—' },
             { key: 'category', label: t('products.group'), render: (p) => db.categories.find((c) => c.id === p.categoryId)?.name || '—' },
-            { key: 'sellPrice', label: t('products.sell'), render: (p) => <Money value={p.sellPrice} /> },
+            { key: 'unit', label: t('products.unit'), render: (p) => qtyUnit(p.unit) },
+            { key: 'sellPrice', label: t('products.sell'), render: (p) => (
+              <>
+                <Money value={p.sellPrice} />
+                {priceBase(p.unit) === 'kg' ? ` ${t('unit.perKg')}` : priceBase(p.unit) === 'm' ? ` ${t('unit.perM')}` : ''}
+              </>
+            ) },
             { key: 'costPrice', label: t('products.cost'), render: (p) => <Money value={p.costPrice} /> },
-            { key: 'stock', label: t('common.stock'), render: (p) => qtyFmt(getStock(p.id)) },
+            { key: 'stock', label: t('common.stock'), render: (p) => `${qtyFmt(getStock(p.id))} ${qtyUnit(p.unit)}` },
             { key: 'taxable', label: t('products.tax'), render: (p) => <Badge tone={p.taxable ? 'ok' : 'neutral'}>{p.taxable ? t('common.yes') : t('common.no')}</Badge> },
             { key: 'actions', label: '', render: (p) => (
               <>
@@ -101,9 +108,27 @@ export function ProductsPage({ toast }) {
                 {db.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </Field>
-            <Field label={t('products.unit')}><input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} /></Field>
-            <Field label={t('products.cost')}><input type="number" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} /></Field>
-            <Field label={t('products.sell')}><input type="number" value={form.sellPrice} onChange={(e) => setForm({ ...form, sellPrice: e.target.value })} /></Field>
+            <Field label={t('products.unit')} full>
+              <div className="unit-cards">
+                {PRODUCT_UNITS.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    className={`unit-card${savedUnit(form.unit) === u.id ? ' active' : ''}`}
+                    onClick={() => setForm({ ...form, unit: u.id })}
+                  >
+                    <b>{t(u.labelKey)}</b>
+                    <span>{t(u.hintKey)}</span>
+                  </button>
+                ))}
+              </div>
+            </Field>
+            <Field label={priceBase(form.unit) === 'kg' ? t('unit.costKg') : priceBase(form.unit) === 'm' ? t('unit.costM') : t('products.cost')}>
+              <input type="number" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} />
+            </Field>
+            <Field label={priceBase(form.unit) === 'kg' ? t('unit.sellKg') : priceBase(form.unit) === 'm' ? t('unit.sellM') : t('products.sell')}>
+              <input type="number" value={form.sellPrice} onChange={(e) => setForm({ ...form, sellPrice: e.target.value })} />
+            </Field>
             <Field label={t('products.reorder')}><input type="number" value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: e.target.value })} /></Field>
             <label className="check field">
               <input type="checkbox" checked={form.taxable} onChange={(e) => setForm({ ...form, taxable: e.target.checked })} />

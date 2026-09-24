@@ -1,3 +1,5 @@
+import { lineGoods } from '../lib/calc.js'
+import { qtyUnit } from '../lib/units.js'
 import { Money } from './Ui.jsx'
 
 export function BillReceipt({ company, sale, t, forPrint }) {
@@ -16,12 +18,12 @@ export function BillReceipt({ company, sale, t, forPrint }) {
           {(sale.items || []).map((l) => (
             <tr key={l.productId}>
               <td>
-                {l.name} × {l.qty}
+                {l.name} × {l.qty} {qtyUnit(l.unit)}
                 {l.listPrice != null && l.listPrice !== l.price ? (
                   <span> ({t('pos.deal')} <Money value={l.price} />)</span>
                 ) : null}
               </td>
-              <td><Money value={l.total ?? (l.qty * l.price - (l.discount || 0))} /></td>
+              <td><Money value={l.total ?? lineGoods(l)} /></td>
             </tr>
           ))}
         </tbody>

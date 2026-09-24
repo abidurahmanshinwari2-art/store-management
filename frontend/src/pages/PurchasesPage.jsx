@@ -3,6 +3,7 @@ import { PageHeader, DataTable, Badge, Modal, Field, Money } from '../components
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
+import { priceBase, qtyUnit } from '../lib/units.js'
 import { dateFmt, toDateInput, todayIso } from '../utils/format.js'
 
 export function PurchasesPage({ toast }) {
@@ -116,12 +117,13 @@ export function PurchasesPage({ toast }) {
                   {db.products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </Field>
-              <Field label={t('common.qty')}><input type="number" value={line.qty} onChange={(e) => {
+              <Field label={t('pos.qtyIn', { u: qtyUnit(db.products.find((p) => p.id === line.productId)?.unit) })}>
+                <input type="number" value={line.qty} onChange={(e) => {
                 const items = form.items.slice()
                 items[idx] = { ...line, qty: e.target.value }
                 setForm({ ...form, items })
               }} /></Field>
-              <Field label={t('common.cost')}><input type="number" value={line.cost} onChange={(e) => {
+              <Field label={priceBase(db.products.find((p) => p.id === line.productId)?.unit) === 'kg' ? t('unit.costKg') : priceBase(db.products.find((p) => p.id === line.productId)?.unit) === 'm' ? t('unit.costM') : t('common.cost')}><input type="number" value={line.cost} onChange={(e) => {
                 const items = form.items.slice()
                 items[idx] = { ...line, cost: e.target.value }
                 setForm({ ...form, items })

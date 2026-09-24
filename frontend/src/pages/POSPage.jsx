@@ -5,7 +5,8 @@ import { Field, Modal, Money } from '../components/Ui.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
-import { docTotals } from '../lib/calc.js'
+import { docTotals, lineGoods } from '../lib/calc.js'
+import { priceBase, qtyUnit } from '../lib/units.js'
 import { findProductByCode, looksLikeScanBurst } from '../utils/barcode.js'
 import { qtyFmt, round2 } from '../utils/format.js'
 
@@ -51,6 +52,7 @@ export function POSPage({ toast }) {
         productId: product.id,
         name: product.name,
         qty: 1,
+        unit: product.unit || 'pcs',
         listPrice: product.sellPrice,
         price: product.sellPrice,
         discount: 0,
@@ -191,8 +193,11 @@ export function POSPage({ toast }) {
             {filtered.map((p) => (
               <button key={p.id} className="product-tile" type="button" onClick={() => add(p)}>
                 <b>{p.name}</b>
-                <div><Money value={p.sellPrice} /></div>
-                <div className="muted">{qtyFmt(getStock(p.id, warehouseId))} {p.unit}</div>
+                <div>
+                  <Money value={p.sellPrice} />
+                  {priceBase(p.unit) === 'kg' ? ` ${t('unit.perKg')}` : priceBase(p.unit) === 'm' ? ` ${t('unit.perM')}` : ''}
+                </div>
+                <div className="muted">{qtyFmt(getStock(p.id, warehouseId))} {qtyUnit(p.unit)}</div>
                 {p.barcode ? <div className="muted">{p.barcode}</div> : null}
               </button>
             ))}
@@ -215,11 +220,11 @@ export function POSPage({ toast }) {
                 <b className="bill-item-name">{line.name}</b>
                 <div className="bill-item-cols">
                   <label className="bill-col">
-                    <span>{t('common.qty')}</span>
+                    <span>{t('pos.qtyIn', { u: qtyUnit(line.unit) })}</span>
                     <div className="qty-row">
                       <button type="button" onClick={() => setQty(line.productId, line.qty - 1)}>-</button>
                       <input
-                        inputMode="numeric"
+                        inputMode="decimal"
                         value={line.qty}
                         onChange={(e) => setQty(line.productId, e.target.value)}
                       />
@@ -228,10 +233,16 @@ export function POSPage({ toast }) {
                   </label>
                   <div className="bill-col">
                     <span>{t('pos.list')}</span>
-                    <strong><Money value={line.listPrice ?? line.price} /></strong>
+                    <strong>
+                      <Money value={line.listPrice ?? line.price} />
+                      {priceBase(line.unit) === 'kg' ? ` ${t('unit.perKg')}` : priceBase(line.unit) === 'm' ? ` ${t('unit.perM')}` : ''}
+                    </strong>
                   </div>
                   <label className="bill-col bill-col-deal">
-                    <span>{t('pos.deal')}</span>
+                    <span>
+                      {t('pos.deal')}
+                      {priceBase(line.unit) === 'kg' ? ` ${t('unit.perKg')}` : priceBase(line.unit) === 'm' ? ` ${t('unit.perM')}` : ''}
+                    </span>
                     <input
                       className="deal-input"
                       inputMode="decimal"
@@ -241,7 +252,7 @@ export function POSPage({ toast }) {
                   </label>
                   <div className="bill-col">
                     <span>{t('common.line')}</span>
-                    <strong><Money value={line.qty * line.price - (line.discount || 0)} /></strong>
+                    <strong><Money value={lineGoods(line)} /></strong>
                   </div>
                 </div>
               </div>

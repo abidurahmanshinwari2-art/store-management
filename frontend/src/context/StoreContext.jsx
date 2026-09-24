@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createEmptyStore, looksLikeSample } from '../data/seed.js'
 import { docTotals, lineTotals } from '../lib/calc.js'
+import { qtyUnit, savedUnit } from '../lib/units.js'
 import { fetchStore, pushStore } from '../utils/api.js'
 import { round2, todayIso } from '../utils/format.js'
 import { nextNumber, uid } from '../utils/id.js'
@@ -45,6 +46,7 @@ function buildSaleItems(db, items) {
       productId: product.id,
       name: product.name,
       qty,
+      unit: item.unit || product.unit || 'pcs',
       listPrice: round2(item.listPrice ?? product.sellPrice),
       price: round2(item.price ?? product.sellPrice),
       discount: round2(item.discount || 0),
@@ -168,7 +170,7 @@ export function StoreProvider({ children }) {
       sku: row.sku.trim(),
       barcode: row.barcode.trim(),
       categoryId: row.categoryId,
-      unit: row.unit.trim() || 'pcs',
+      unit: savedUnit(row.unit),
       costPrice: round2(row.costPrice),
       sellPrice: round2(row.sellPrice),
       reorderLevel: Number(row.reorderLevel) || 0,
@@ -258,7 +260,7 @@ export function StoreProvider({ children }) {
             (row) => row.productId === item.productId && row.warehouseId === payload.warehouseId,
           )?.qty || 0
           if (onHand < item.qty) {
-            throw new Error(`${item.name} has only ${onHand} in this warehouse.`)
+            throw new Error(`${item.name} has only ${onHand} ${qtyUnit(item.unit)} in this warehouse.`)
           }
         })
         const totals = docTotals(items, rate, payload.billDiscount)
@@ -423,8 +425,8 @@ export function StoreProvider({ children }) {
         if (!product) throw new Error('A product on this purchase was not found.')
         const qty = Number(item.qty)
         const cost = round2(item.cost ?? product.costPrice)
-        const { subtotal, tax, total } = lineTotals({ qty, price: cost, discount: 0, taxable: product.taxable }, rate)
-        return { productId: product.id, name: product.name, qty, cost, taxable: product.taxable, subtotal, tax, total }
+        const { subtotal, tax, total } = lineTotals({ qty, price: cost, discount: 0, taxable: product.taxable, unit: product.unit }, rate)
+        return { productId: product.id, name: product.name, qty, unit: product.unit, cost, taxable: product.taxable, subtotal, tax, total }
       })
       if (!items.length) throw new Error('Add at least one item.')
       const subtotal = round2(items.reduce((s, i) => s + i.subtotal, 0))

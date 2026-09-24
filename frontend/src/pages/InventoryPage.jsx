@@ -3,6 +3,7 @@ import { PageHeader, DataTable, Modal, Field, Badge } from '../components/Ui.jsx
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
+import { qtyUnit } from '../lib/units.js'
 import { dateFmt, qtyFmt } from '../utils/format.js'
 
 export function InventoryPage({ toast }) {
@@ -21,7 +22,7 @@ export function InventoryPage({ toast }) {
       .map((p) => ({
         ...p,
         total: getStock(p.id),
-        byWh: db.warehouses.map((w) => `${w.name}: ${qtyFmt(getStock(p.id, w.id))}`).join(' · '),
+        byWh: db.warehouses.map((w) => `${w.name}: ${qtyFmt(getStock(p.id, w.id))} ${qtyUnit(p.unit)}`).join(' · '),
         low: getStock(p.id) <= p.reorderLevel,
       }))
   }, [db, q, getStock])
@@ -49,7 +50,7 @@ export function InventoryPage({ toast }) {
             columns={[
               { key: 'name', label: t('common.product') },
               { key: 'sku', label: t('products.sku') },
-              { key: 'total', label: t('common.total'), render: (p) => <span className={p.low ? 'low' : ''}>{qtyFmt(p.total)}</span> },
+              { key: 'total', label: t('common.total'), render: (p) => <span className={p.low ? 'low' : ''}>{qtyFmt(p.total)} {qtyUnit(p.unit)}</span> },
               { key: 'byWh', label: t('inv.warehouses') },
               { key: 'status', label: '', render: (p) => p.low ? <Badge tone="warn">{t('inv.reorder')}</Badge> : <Badge tone="ok">{t('inv.ok')}</Badge> },
               { key: 'actions', label: '', render: (p) => (
@@ -103,7 +104,7 @@ export function InventoryPage({ toast }) {
                 {db.warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
             </Field>
-            <Field label={t('inv.qtyChange')}><input type="number" value={adjust.qty} onChange={(e) => setAdjust({ ...adjust, qty: e.target.value })} /></Field>
+            <Field label={`${t('inv.qtyChange')} (${qtyUnit(db.products.find((p) => p.id === adjust.productId)?.unit)})`}><input type="number" value={adjust.qty} onChange={(e) => setAdjust({ ...adjust, qty: e.target.value })} /></Field>
             <Field label={t('common.note')}><input value={adjust.note} onChange={(e) => setAdjust({ ...adjust, note: e.target.value })} /></Field>
           </div>
         </Modal>
@@ -141,7 +142,7 @@ export function InventoryPage({ toast }) {
                 {db.warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
             </Field>
-            <Field label={t('common.qty')}><input type="number" value={transfer.qty} onChange={(e) => setTransfer({ ...transfer, qty: e.target.value })} /></Field>
+            <Field label={`${t('common.qty')} (${qtyUnit(db.products.find((p) => p.id === transfer.productId)?.unit)})`}><input type="number" value={transfer.qty} onChange={(e) => setTransfer({ ...transfer, qty: e.target.value })} /></Field>
           </div>
         </Modal>
       ) : null}

@@ -3,6 +3,7 @@ import { PageHeader, DataTable, StatCard, Money } from '../components/Ui.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
 import { cogsOf, saleCompromise } from '../lib/calc.js'
+import { amountFromBase } from '../lib/units.js'
 import { dateBoth, downloadCsv, money, round2, toDateInput } from '../utils/format.js'
 import {
   inDateRange,
@@ -189,7 +190,7 @@ export function ReportsPage() {
   const cogs = round2(sales.reduce((s, r) => s + cogsOf(r.items, db.products), 0))
   const profit = round2(salesTotal - tax - cogs - costsTotal)
   const stockValue = round2(
-    db.products.reduce((sum, p) => sum + getStock(p.id) * (Number(p.costPrice) || 0), 0),
+    db.products.reduce((sum, p) => sum + amountFromBase(getStock(p.id), p.costPrice, p.unit), 0),
   )
   const stats = { salesTotal, discounts, buysTotal, costsTotal, tax, profit }
 
