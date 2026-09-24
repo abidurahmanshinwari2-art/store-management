@@ -3,7 +3,7 @@ import { PageHeader, DataTable, Modal, Field, Badge } from '../components/Ui.jsx
 import { useAuth } from '../context/AuthContext.jsx'
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
-import { qtyUnit } from '../lib/units.js'
+import { priceBase, qtyUnit, stockInputUnit, toStockQty } from '../lib/units.js'
 import { dateFmt, qtyFmt } from '../utils/format.js'
 
 export function InventoryPage({ toast }) {
@@ -85,7 +85,8 @@ export function InventoryPage({ toast }) {
               <button className="btn ghost" type="button" onClick={() => setAdjust(null)}>{t('common.cancel')}</button>
               <button className="btn copper" type="button" onClick={() => {
                 try {
-                  adjustInventory({ ...adjust, userId: user.id })
+                  const product = db.products.find((p) => p.id === adjust.productId)
+                  adjustInventory({ ...adjust, qty: toStockQty(adjust.qty, product?.unit), userId: user.id })
                   setAdjust(null)
                   toast(t('inv.updated'))
                 } catch (err) { toast(err.message, 'bad') }
@@ -104,7 +105,11 @@ export function InventoryPage({ toast }) {
                 {db.warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
             </Field>
-            <Field label={`${t('inv.qtyChange')} (${qtyUnit(db.products.find((p) => p.id === adjust.productId)?.unit)})`}><input type="number" value={adjust.qty} onChange={(e) => setAdjust({ ...adjust, qty: e.target.value })} /></Field>
+            <Field label={`${t('inv.qtyChange')} (${stockInputUnit(db.products.find((p) => p.id === adjust.productId)?.unit)})`}>
+              <input type="number" step="any" value={adjust.qty} onChange={(e) => setAdjust({ ...adjust, qty: e.target.value })} />
+            </Field>
+            {priceBase(db.products.find((p) => p.id === adjust.productId)?.unit) === 'kg' ? <p className="muted" style={{ gridColumn: '1 / -1' }}>{t('inv.qtyHintKg')}</p> : null}
+            {priceBase(db.products.find((p) => p.id === adjust.productId)?.unit) === 'm' ? <p className="muted" style={{ gridColumn: '1 / -1' }}>{t('inv.qtyHintM')}</p> : null}
             <Field label={t('common.note')}><input value={adjust.note} onChange={(e) => setAdjust({ ...adjust, note: e.target.value })} /></Field>
           </div>
         </Modal>
@@ -118,7 +123,8 @@ export function InventoryPage({ toast }) {
               <button className="btn ghost" type="button" onClick={() => setTransfer(null)}>{t('common.cancel')}</button>
               <button className="btn copper" type="button" onClick={() => {
                 try {
-                  transferStock({ ...transfer, userId: user.id })
+                  const product = db.products.find((p) => p.id === transfer.productId)
+                  transferStock({ ...transfer, qty: toStockQty(transfer.qty, product?.unit), userId: user.id })
                   setTransfer(null)
                   toast(t('inv.moved'))
                 } catch (err) { toast(err.message, 'bad') }
@@ -142,7 +148,11 @@ export function InventoryPage({ toast }) {
                 {db.warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
               </select>
             </Field>
-            <Field label={`${t('common.qty')} (${qtyUnit(db.products.find((p) => p.id === transfer.productId)?.unit)})`}><input type="number" value={transfer.qty} onChange={(e) => setTransfer({ ...transfer, qty: e.target.value })} /></Field>
+            <Field label={`${t('common.qty')} (${stockInputUnit(db.products.find((p) => p.id === transfer.productId)?.unit)})`}>
+              <input type="number" step="any" value={transfer.qty} onChange={(e) => setTransfer({ ...transfer, qty: e.target.value })} />
+            </Field>
+            {priceBase(db.products.find((p) => p.id === transfer.productId)?.unit) === 'kg' ? <p className="muted" style={{ gridColumn: '1 / -1' }}>{t('inv.qtyHintKg')}</p> : null}
+            {priceBase(db.products.find((p) => p.id === transfer.productId)?.unit) === 'm' ? <p className="muted" style={{ gridColumn: '1 / -1' }}>{t('inv.qtyHintM')}</p> : null}
           </div>
         </Modal>
       ) : null}

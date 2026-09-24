@@ -39,6 +39,14 @@ export function priceBase(unit) {
   return ''
 }
 
+export function stockInputUnit(unit) {
+  return priceBase(unit) || qtyUnit(unit)
+}
+
+export function toStockQty(qty, unit) {
+  return (Number(qty) || 0) * unitFactor(unit)
+}
+
 export function amountFromBase(qty, basePrice, unit) {
   const factor = unitFactor(unit)
   return (Number(qty) || 0) * (Number(basePrice) || 0) / factor
