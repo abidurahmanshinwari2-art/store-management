@@ -3,6 +3,7 @@ import { PageHeader, Field, DataTable, Modal, Money } from '../components/Ui.jsx
 import { useStore } from '../context/StoreContext.jsx'
 import { useUi } from '../context/UiContext.jsx'
 import { applyUpdate, fetchServerSettings, fetchUpdate, restoreBackupFile, saveBackupOnPc } from '../utils/api.js'
+import { pushUpdateNote } from '../utils/updateNote.js'
 import { FONTS, FONT_SIZE_MAX, FONT_SIZE_MIN } from '../utils/fonts.js'
 
 const THEMES = [
@@ -11,6 +12,7 @@ const THEMES = [
   { id: 'ruby', colors: ['#f8d9d6', '#e06b4f', '#ffffff'] },
   { id: 'teal', colors: ['#d2efe9', '#2a9d8f', '#ffffff'] },
   { id: 'stone', colors: ['#efe4d4', '#d4783a', '#fffdf9'] },
+  { id: 'night', colors: ['#111111', '#111111', '#ffffff'] },
 ]
 
 export function SettingsPage({ toast }) {
@@ -257,7 +259,9 @@ export function SettingsPage({ toast }) {
               }
               toast(t('upd.working'))
               const done = await applyUpdate()
-              toast(done.ok ? (done.message || t('upd.done')) : (done.message || t('upd.failed')), done.ok ? 'ok' : 'bad')
+              const message = done.ok ? (done.message || t('upd.done')) : (done.message || t('upd.failed'))
+              pushUpdateNote(message)
+              toast(message, done.ok ? 'ok' : 'bad')
             } catch {
               toast(t('upd.offline'), 'bad')
             } finally {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useUi } from '../context/UiContext.jsx'
 import { applyUpdate, fetchUpdate } from '../utils/api.js'
+import { pushUpdateNote, subscribeUpdateNote } from '../utils/updateNote.js'
 
 export function UpdateBanner() {
   const { t } = useUi()
@@ -23,7 +24,18 @@ export function UpdateBanner() {
     }
   }, [])
 
-  if (!info?.available && !note) return null
+  useEffect(() => subscribeUpdateNote(setNote), [])
+
+  useEffect(() => {
+    if (!note) return undefined
+    const id = window.setTimeout(() => {
+      setNote('')
+      pushUpdateNote('')
+    }, 20000)
+    return () => window.clearTimeout(id)
+  }, [note])
+
+  if (!note && !info?.available) return null
 
   return (
     <div className="update-banner">
@@ -37,10 +49,11 @@ export function UpdateBanner() {
           setBusy(true)
           try {
             const done = await applyUpdate()
-            setNote(done.message || (done.ok ? t('upd.done') : t('upd.failed')))
+            const message = done.message || (done.ok ? t('upd.done') : t('upd.failed'))
+            pushUpdateNote(message)
             setInfo(done.ok ? { ...info, available: false } : info)
           } catch {
-            setNote(t('upd.failed'))
+            pushUpdateNote(t('upd.failed'))
           } finally {
             setBusy(false)
           }
