@@ -24,13 +24,17 @@ export function UpdateBanner() {
     }
   }, [])
 
-  useEffect(() => subscribeUpdateNote(setNote), [])
+  useEffect(() => subscribeUpdateNote((msg) => {
+    setNote(msg)
+    if (msg) setInfo((prev) => ({ ...(prev || {}), available: false }))
+  }), [])
 
   useEffect(() => {
     if (!note) return undefined
     const id = window.setTimeout(() => {
       setNote('')
       pushUpdateNote('')
+      setInfo((prev) => ({ ...(prev || {}), available: false }))
     }, 20000)
     return () => window.clearTimeout(id)
   }, [note])
@@ -51,9 +55,10 @@ export function UpdateBanner() {
             const done = await applyUpdate()
             const message = done.message || (done.ok ? t('upd.done') : t('upd.failed'))
             pushUpdateNote(message)
-            setInfo(done.ok ? { ...info, available: false } : info)
+            setInfo((prev) => ({ ...(prev || {}), available: false }))
           } catch {
             pushUpdateNote(t('upd.failed'))
+            setInfo((prev) => ({ ...(prev || {}), available: false }))
           } finally {
             setBusy(false)
           }

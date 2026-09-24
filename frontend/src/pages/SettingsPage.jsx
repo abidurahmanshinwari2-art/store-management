@@ -261,6 +261,7 @@ export function SettingsPage({ toast }) {
               const done = await applyUpdate()
               const message = done.ok ? (done.message || t('upd.done')) : (done.message || t('upd.failed'))
               pushUpdateNote(message)
+              setUpd((prev) => ({ ...(prev || {}), available: false }))
               toast(message, done.ok ? 'ok' : 'bad')
             } catch {
               toast(t('upd.offline'), 'bad')
