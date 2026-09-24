@@ -13,14 +13,25 @@ export function UpdateBanner() {
     let live = true
     const load = () => {
       fetchUpdate()
-        .then((row) => { if (live) setInfo(row) })
+        .then((row) => {
+          if (!live) return
+          setInfo({
+            ...row,
+            available: Boolean(row?.available),
+          })
+        })
         .catch(() => {})
     }
     load()
-    const id = window.setInterval(load, 6 * 60 * 60 * 1000)
+    const onVis = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    const id = window.setInterval(load, 60 * 1000)
     return () => {
       live = false
       window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVis)
     }
   }, [])
 

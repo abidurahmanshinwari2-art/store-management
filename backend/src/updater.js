@@ -72,11 +72,11 @@ export async function checkUpdate() {
       note: githubRepo() ? 'offline' : 'no-repo',
     }
   }
-  const installed = userSettings().installedId
+  const installed = String(userSettings().installedId || '').trim()
   return {
-    current: installed ? String(installed).slice(0, 7) : remote.name,
+    current: installed ? installed.slice(0, 7) : remote.name,
     latest: remote.name,
-    available: !installed || installed !== remote.id,
+    available: Boolean(installed) && installed !== remote.id,
     url: remote.url,
     note: 'ok',
   }
